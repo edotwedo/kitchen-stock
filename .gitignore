@@ -1,0 +1,25 @@
+# Dependencies and build output
+node_modules/
+dist/
+dev-dist/
+coverage/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Private household data and notes — never commit
+kitchen-seed-data.json
+kitchen-stock.html
+CLAUDE.md
+private/
+*.export.json
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.tsbuildinfo
