@@ -39,6 +39,7 @@ export interface AppState {
 
 const LOCAL_KEY = "ks-household-v1";
 const KITCHEN_KEY = "ks-kitchen";
+const KITCHENS_KEY = "ks-kitchens";
 const cacheKey = (id: string) => "ks-cache-v1-" + id;
 const outboxKey = (id: string) => "ks-outbox-v1-" + id;
 
@@ -258,9 +259,18 @@ function friendly(msg: string): string {
 
 async function loadKitchens(session: Session) {
   if (!supabase) return;
+  set({ email: session.user.email ?? null });
+  const remembered = readString(KITCHEN_KEY);
   const { data, error } = await supabase.from("members").select("role, households(id, name)").eq("user_id", session.user.id);
   if (error) {
-    set({ problem: "Couldn't reach the shared list. Check your connection.", status: app.household ? "ready" : "no-kitchen" });
+    // No signal at start-up: open the kitchen this phone used last, from its saved copy.
+    const saved = readKitchens();
+    if (remembered && readJson(cacheKey(remembered))) {
+      set({ kitchens: saved });
+      await openKitchen(remembered);
+    } else {
+      set({ problem: "Couldn't reach the shared list. Check your connection.", status: app.household ? "ready" : "no-kitchen" });
+    }
     return;
   }
   const kitchens: Kitchen[] = (data ?? [])
@@ -270,17 +280,32 @@ async function loadKitchens(session: Session) {
     })
     .filter((k): k is Kitchen => !!k)
     .sort((a, b) => a.name.localeCompare(b.name));
-  set({ kitchens, email: session.user.email ?? null });
-
-  let remembered: string | null = null;
+  set({ kitchens });
   try {
-    remembered = localStorage.getItem(KITCHEN_KEY);
+    localStorage.setItem(KITCHENS_KEY, JSON.stringify(kitchens));
   } catch {
     /* not essential */
   }
-  const pick = kitchens.find((k) => k.id === remembered) ?? (kitchens.length === 1 ? kitchens[0] : null) ?? kitchens[0] ?? null;
+
+  const pick = kitchens.find((k) => k.id === remembered) ?? kitchens[0] ?? null;
   if (pick) await openKitchen(pick.id);
   else set({ status: "no-kitchen", kitchenId: null, household: null });
+}
+
+function readString(k: string): string | null {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+}
+
+function readKitchens(): Kitchen[] {
+  try {
+    return JSON.parse(localStorage.getItem(KITCHENS_KEY) ?? "[]") as Kitchen[];
+  } catch {
+    return [];
+  }
 }
 
 export async function openKitchen(id: string) {

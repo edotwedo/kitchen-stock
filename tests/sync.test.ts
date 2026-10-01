@@ -11,6 +11,7 @@ const db = vi.hoisted(() => {
     sent: [] as { table: string; op: string; payload: unknown }[],
     household: { id: "hh", name: "Test kitchen", settings: { locations: [{ key: "fridge", label: "Fridge", kind: "fridge" }] } },
     items: [] as Record<string, unknown>[],
+    session: null as null | { user: { id: string; email: string } },
   };
   const answer = (table: string, op: string, payload: unknown) => {
     state.sent.push({ table, op, payload });
@@ -18,9 +19,13 @@ const db = vi.hoisted(() => {
     if (state.mode === "refuse") return Promise.resolve({ error: { message: "row-level security", code: "42501" }, status: 403, data: null });
     return Promise.resolve({ error: null, status: 200, data: null });
   };
+  const offlineRead = { error: { message: "Failed to fetch" }, status: 0, data: null };
   const from = (table: string) => ({
     select: () => ({
       eq: () => ({
+        // members list: awaited straight after .eq()
+        then: (ok: (v: unknown) => unknown, bad?: (e: unknown) => unknown) =>
+          Promise.resolve(state.mode === "offline" ? offlineRead : { error: null, data: [{ role: "owner", households: { id: "hh", name: state.household.name } }] }).then(ok, bad),
         single: () => Promise.resolve(state.mode === "offline" ? { error: { message: "Failed to fetch" }, status: 0, data: null } : { error: null, data: state.household }),
         range: () => Promise.resolve(state.mode === "offline" ? { error: { message: "Failed to fetch" }, status: 0, data: null } : { error: null, data: state.items }),
       }),
@@ -34,7 +39,12 @@ const db = vi.hoisted(() => {
     from,
     channel: () => channel,
     removeChannel: () => Promise.resolve(),
-    auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+    auth: {
+      onAuthStateChange: (cb: (event: string, session: unknown) => void) => {
+        if (state.session) cb("INITIAL_SESSION", state.session);
+        return { data: { subscription: { unsubscribe() {} } } };
+      },
+    },
   };
   return { state, client };
 });
@@ -55,6 +65,7 @@ beforeEach(() => {
   db.state.mode = "ok";
   db.state.sent = [];
   db.state.items = [row("milk"), row("eggs")];
+  db.state.session = null;
   vi.useFakeTimers();
 });
 afterEach(() => vi.useRealTimers());
@@ -127,5 +138,21 @@ describe("syncing the shared list", () => {
     await vi.runOnlyPendingTimersAsync();
     expect(s.snapshot().pending).toBe(0);
     expect(s.snapshot().household?.items.find((i) => i.id === "milk")?.level).toBe("full");
+  });
+
+  it("opens the last kitchen from the phone's copy when started with no signal", async () => {
+    db.state.session = { user: { id: "u1", email: "cook@example.com" } };
+    let s = await freshStore();
+    await vi.runOnlyPendingTimersAsync(); // signed in: kitchens load
+    expect(s.snapshot().status).toBe("ready");
+    expect(s.snapshot().household?.items).toHaveLength(2);
+
+    // Next morning, in the garage, no signal.
+    db.state.mode = "offline";
+    s = await freshStore();
+    await vi.runOnlyPendingTimersAsync();
+    expect(s.snapshot().status).toBe("ready");
+    expect(s.snapshot().household?.name).toBe("Test kitchen");
+    expect(s.snapshot().kitchens.map((k) => k.name)).toEqual(["Test kitchen"]);
   });
 });
