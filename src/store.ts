@@ -237,7 +237,8 @@ export function deviceList(): Household | null {
 
 export async function sendCode(email: string): Promise<string | null> {
   if (!supabase) return "No database is set up for this app.";
-  const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
+  // The email carries a link back to this app (and a code, once the template is customised).
+  const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true, emailRedirectTo: window.location.origin } });
   return error ? friendly(error.message) : null;
 }
 

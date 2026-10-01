@@ -62,7 +62,7 @@ export function SignIn() {
         ) : (
           <form className="stack" onSubmit={(e) => (e.preventDefault(), void run(() => verifyCode(email, code)))}>
             <p>
-              Check <strong>{email}</strong> for a code and type it here.
+              Check <strong>{email}</strong>. Tap the sign-in link in the email, or type the code if it has one.
             </p>
             <label className="field">
               Code
