@@ -177,7 +177,7 @@ function Library({ h }: { h: Household }) {
   );
 }
 
-export function Settings({ h, onClose, backup, sharing, onPrint }: { h: Household; onClose: () => void; backup: React.ReactNode; sharing: React.ReactNode; onPrint: () => void }) {
+export function Settings({ h, onClose, backup, sharing, onPrint, reminders }: { h: Household; onClose: () => void; backup: React.ReactNode; sharing: React.ReactNode; onPrint: () => void; reminders: React.ReactNode }) {
   const [kind, setKind] = useState<LocationKind>("pantry");
 
   useEffect(() => {
@@ -294,6 +294,13 @@ export function Settings({ h, onClose, backup, sharing, onPrint }: { h: Househol
           <section className="set">
             <h4>Sharing</h4>
             {sharing}
+          </section>
+        )}
+
+        {reminders && (
+          <section className="set">
+            <h4>Reminders</h4>
+            {reminders}
           </section>
         )}
 

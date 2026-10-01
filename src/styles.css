@@ -440,3 +440,8 @@ html.printing #root { display: none; }
 .linkbtn.danger { color: var(--out); }
 .linkbtn.danger.armed { font-weight: 700; }
 .btn.armed { border-color: var(--out); color: var(--out); }
+
+/* ---------- reminder preview ---------- */
+.notice-preview { display: flex; flex-direction: column; gap: 6px; }
+.notice { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--r-md); background: var(--sunk); font-size: 14px; white-space: pre-line; }
+.notice strong { font-weight: 600; }

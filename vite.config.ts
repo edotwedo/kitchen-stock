@@ -31,6 +31,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
         navigateFallback: "/index.html",
+        // Shows reminder notifications and opens the right list when one is tapped.
+        importScripts: ["push-sw.js"],
         runtimeCaching: [
           {
             // The two typefaces, so headings don't fall back to a plain font offline.

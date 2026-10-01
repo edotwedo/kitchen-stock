@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NoKitchen, Sharing, SignIn } from "./Account";
 import { CookSheet } from "./CookSheet";
 import { PrintView } from "./PrintView";
+import { Reminders } from "./Reminders";
 import { EditSheet, type SheetTarget } from "./EditSheet";
 import { Settings } from "./Settings";
 import { DayDot } from "./DayDot";
@@ -18,6 +19,12 @@ type Tab = { key: string; label: string; count: number; filter: (i: Item) => boo
 const BARS: Record<Level, number> = { full: 3, half: 2, low: 1, out: 0 };
 
 function readTab(): string {
+  // A tapped reminder opens /?tab=first or /?tab=shop.
+  const fromLink = new URLSearchParams(location.search).get("tab");
+  if (fromLink === "first" || fromLink === "shop") {
+    history.replaceState(null, "", location.pathname);
+    return fromLink;
+  }
   try {
     return localStorage.getItem("ks-tab") || "first";
   } catch {
@@ -219,6 +226,7 @@ export default function App() {
           onClose={() => setMenu(false)}
           sharing={app.cloud ? <Sharing app={app} /> : null}
           onPrint={() => (setMenu(false), setPrinting(true))}
+          reminders={app.cloud ? <Reminders h={h} kitchenId={app.kitchenId} /> : null}
           backup={<BackupButtons onDone={toast} onLoaded={() => setMenu(false)} />}
         />
       )}
