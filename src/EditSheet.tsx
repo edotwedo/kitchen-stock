@@ -4,6 +4,7 @@ import { DayDot } from "./DayDot";
 import { dayOf, fmtDate } from "./format";
 import { addDays, toIso } from "./logic";
 import { alreadyHave, pastMatches } from "./quickAdd";
+import { spotsIn } from "./logic";
 import { deleteItem, restockItems, restoreItem, saveItem } from "./store";
 import { LEVELS, WRAP_LABELS, WRAPS, type Household, type Item, type Level, type Wrap } from "./types";
 
@@ -15,6 +16,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
   const [name, setName] = useState(it?.name ?? "");
   const [loc, setLoc] = useState(it?.loc ?? target.loc ?? h.locations[0]?.key ?? "");
   const [qty, setQty] = useState(it?.qty ?? "");
+  const [spot, setSpot] = useState(it?.spot ?? "");
   const [level, setLevel] = useState<Level>(it?.level ?? "full");
   const [useBy, setUseBy] = useState(it?.useBy ?? "");
   const [remindOn, setRemindOn] = useState(it?.remindOn ?? "");
@@ -41,7 +43,10 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
     e.preventDefault();
     const n = name.trim();
     if (!n) return nameRef.current?.focus();
-    saveItem(it?.id ?? null, { name: n, loc, qty: qty.trim(), level, useBy, remindOn, frozenOn: frozenDate, wrap, note: note.trim(), flags });
+    // A spot is only stored once one has been given; clearing it later stores "".
+    const s = spot.trim();
+    const spotField = s || it?.spot !== undefined ? { spot: s } : {};
+    saveItem(it?.id ?? null, { name: n, loc, qty: qty.trim(), level, useBy, remindOn, frozenOn: frozenDate, wrap, note: note.trim(), flags, ...spotField });
     onSaved((it ? "Saved " : "Added ") + n, it ? () => restoreItem(it) : undefined);
     onClose();
   };
@@ -62,6 +67,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
     setName(p.name);
     setLoc(p.loc);
     setQty(p.qty);
+    if (p.spot) setSpot(p.spot);
     setWrap(p.wrap);
     setNote(p.note);
     setFlags(p.flags);
@@ -134,6 +140,15 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
             <label className="field">
               Amount
               <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="2 lb, 3 cans" />
+            </label>
+            <label className="field full">
+              Spot <span className="hint small">optional</span>
+              <input value={spot} onChange={(e) => setSpot(e.target.value)} list="spots" maxLength={40} autoComplete="off" placeholder="Door, top shelf, bin 2" />
+              <datalist id="spots">
+                {spotsIn(h, loc).map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
             </label>
             <div className="field full">
               <span id="lvl-label">How much is left</span>

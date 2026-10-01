@@ -9,7 +9,7 @@ import { DayDot } from "./DayDot";
 import { dayOf, dueTag } from "./format";
 import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
-import { byDue, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
+import { byDue, bySpot, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { mergeList } from "./merge";
 import { clearProblem, endDemo, exportJson, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, useApp } from "./store";
 import { StoreRun } from "./StoreRun";
@@ -165,7 +165,12 @@ export default function App() {
   else if (current.byLocation)
     for (const l of h.locations) groups.push({ title: l.label, list: visible.filter((i) => i.loc === l.key && current.filter(i)), showLoc: false });
   else groups.push({ title: current.key === "first" ? "Use these first" : current.label, list: visible.filter(current.filter), showLoc: !current.key.startsWith("loc:") });
-  for (const g of groups) g.list.sort(current.sort && !searching ? current.sort : byLevelThenName);
+  // A place's list reads in shelf order: grouped by spot, then the usual order.
+  const inPlace = !searching && (current.byLocation || current.key.startsWith("loc:"));
+  for (const g of groups) {
+    const order = current.sort && !searching ? current.sort : byLevelThenName;
+    g.list.sort(inPlace ? bySpot(order) : order);
+  }
   const shown = groups.length > 1 ? groups.filter((g) => g.list.length) : groups;
 
   const due = items.filter((i) => isReminderDue(i, today)).sort((a, b) => a.remindOn.localeCompare(b.remindOn));
@@ -333,7 +338,8 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
   const flags = h.flags.filter((f) => i.flags.includes(f.id));
   const avoiders = h.people.filter((p) => p.avoids.some((a) => i.flags.includes(a)));
   const limiters = h.people.filter((p) => !avoiders.includes(p) && p.limits.some((a) => i.flags.includes(a)));
-  const hasMeta = (props.showLoc && loc) || dot || tag || flags.length || i.note;
+  const spot = i.spot?.trim();
+  const hasMeta = (props.showLoc && loc) || spot || dot || tag || flags.length || i.note;
   return (
     <div className={"row " + i.level}>
       <Gauge item={i} onStep={props.onStep} />
@@ -344,7 +350,8 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
         {hasMeta && (
           <div className="meta">
             {dot && <DayDot day={dot} />}
-            {props.showLoc && loc && <span className="tag">{loc.label}</span>}
+            {props.showLoc && loc && <span className="tag">{spot ? `${loc.label}, ${spot}` : loc.label}</span>}
+            {!props.showLoc && spot && <span className="tag spot">{spot}</span>}
             {tag && <span className={"tag " + tag.tone}>{tag.text}</span>}
             {flags.map((f) => (
               <span key={f.id} className="tag flag">

@@ -13,6 +13,7 @@ const db = vi.hoisted(() => {
     items: [] as Record<string, unknown>[],
     session: null as null | { user: { id: string; email: string } },
     updated: false, // has database update 0002 been run?
+    spots: false, // has database update 0004 been run?
     members: [] as { user_id: string; email: string; role: string }[],
   };
   const missing = (what: string) => ({ error: { code: "PGRST202", message: `Could not find the function ${what}` }, data: null, status: 404 });
@@ -20,6 +21,9 @@ const db = vi.hoisted(() => {
     state.sent.push({ table, op, payload });
     if (state.mode === "offline") return Promise.resolve({ error: { message: "TypeError: Failed to fetch" }, status: 0, data: null });
     if (state.mode === "refuse") return Promise.resolve({ error: { message: "row-level security", code: "42501" }, status: 403, data: null });
+    // Before database update 0004 there's no spot column.
+    if (!state.spots && op === "upsert" && Array.isArray(payload) && payload.some((r) => "spot" in r))
+      return Promise.resolve({ error: { code: "PGRST204", message: "Could not find the 'spot' column of 'items' in the schema cache" }, status: 400, data: null });
     return Promise.resolve({ error: null, status: 200, data: null });
   };
   const offlineRead = { error: { message: "Failed to fetch" }, status: 0, data: null };
@@ -109,6 +113,26 @@ describe("syncing the shared list", () => {
     expect(ups).toHaveLength(1);
     expect((ups[0].payload as { id: string; level: string }[]).map((r) => `${r.id}:${r.level}`).sort()).toEqual(["eggs:out", "milk:low"]);
     expect(s.snapshot().pending).toBe(0);
+  });
+
+  it("saves everything but the spot on a database without update 0004, and says so", async () => {
+    const s = await freshStore();
+    await s.openKitchen("hh");
+    s.saveItem("milk", { level: "low", spot: "Door" });
+    await settle();
+    const ups = db.state.sent.filter((x) => x.op === "upsert").map((x) => x.payload as Record<string, unknown>[]);
+    expect(ups).toHaveLength(2);
+    expect(ups[1][0]).toMatchObject({ id: "milk", level: "low" });
+    expect("spot" in ups[1][0]).toBe(false);
+    expect(s.snapshot().pending).toBe(0);
+    expect(s.snapshot().problem).toContain("update 0004");
+
+    // After the update, spots go up too.
+    db.state.spots = true;
+    db.state.sent = [];
+    s.saveItem("milk", { spot: "Top shelf" });
+    await settle();
+    expect((db.state.sent[0].payload as Record<string, unknown>[])[0]).toMatchObject({ id: "milk", spot: "Top shelf" });
   });
 
   it("keeps changes made with no signal and sends them when back online", async () => {

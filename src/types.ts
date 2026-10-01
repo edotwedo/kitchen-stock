@@ -52,6 +52,7 @@ export interface Item {
   wrap: Wrap;
   note: string;
   flags: string[];
+  spot?: string; // where in the place: "Door", "Top shelf", "Bin 2"; "" once cleared, missing if never set
   updated: string; // ISO timestamp
   by?: string;
 }

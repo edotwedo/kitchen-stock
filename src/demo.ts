@@ -45,14 +45,14 @@ export function sampleKitchen(today = new Date()): Household {
     ],
     items: [
       // Fridge
-      item("Greek yogurt", "fridge", "32 oz", "half", { useBy: d(1) }),
-      item("Baby spinach", "fridge", "1 bag", "full", { useBy: d(2) }),
-      item("Leftover chili", "fridge", "1 container", "half", { useBy: d(0), note: "Made Sunday" }),
+      item("Greek yogurt", "fridge", "32 oz", "half", { useBy: d(1), spot: "Top shelf" }),
+      item("Baby spinach", "fridge", "1 bag", "full", { useBy: d(2), spot: "Crisper" }),
+      item("Leftover chili", "fridge", "1 container", "half", { useBy: d(0), note: "Made Sunday", spot: "Top shelf" }),
       item("Shredded cheddar", "fridge", "8 oz", "low", { useBy: d(9) }),
       item("Eggs", "fridge", "1 dozen", "half", { useBy: d(18) }),
-      item("Milk", "fridge", "1 gallon", "low", { useBy: d(4) }),
+      item("Milk", "fridge", "1 gallon", "low", { useBy: d(4), spot: "Door" }),
       item("Bacon", "fridge", "1 lb", "full", { useBy: d(6), flags: ["pork"] }),
-      item("Ketchup", "fridge", "bottle", "low", { flags: ["added-sugar"] }),
+      item("Ketchup", "fridge", "bottle", "low", { flags: ["added-sugar"], spot: "Door" }),
       item("Sour cream", "fridge", "16 oz", "full", { useBy: d(-2) }),
       // Freezer
       item("Ground beef", "freezer", "2 lb", "full", { frozenOn: d(-2), wrap: "vacuum" }),

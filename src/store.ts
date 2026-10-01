@@ -176,6 +176,14 @@ function loadOutbox(id: string): Outbox {
   }
 }
 
+/** Save items. A database without update 0004 has no spot column: save the rest, and say so. */
+async function upsertItems(rows: ItemRow[]): Promise<{ error: unknown; status?: number }> {
+  const first = await supabase!.from("items").upsert(rows);
+  if (!first.error || !missingUpdate(first.error) || !rows.some((r) => "spot" in r)) return first;
+  set({ problem: "Shelf spots need database update 0004 in Supabase before they can be shared." });
+  return supabase!.from("items").upsert(rows.map(({ spot: _spot, ...r }) => r));
+}
+
 /** Send what's waiting. Returns true when nothing is left waiting. */
 async function flush(): Promise<boolean> {
   const kitchenId = app.kitchenId;
@@ -186,7 +194,7 @@ async function flush(): Promise<boolean> {
   const jobs: PromiseLike<{ error: unknown; status?: number }>[] = [];
   if (sent.settings) jobs.push(supabase.from("households").update(sent.settings).eq("id", kitchenId));
   const rows = Object.values(sent.upserts);
-  if (rows.length) jobs.push(supabase.from("items").upsert(rows));
+  if (rows.length) jobs.push(upsertItems(rows));
   if (sent.deletes.length) jobs.push(supabase.from("items").delete().eq("household_id", kitchenId).in("id", sent.deletes));
   let results: { error: unknown; status?: number }[];
   try {

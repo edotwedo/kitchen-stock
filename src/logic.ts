@@ -77,9 +77,29 @@ export function byDue(h: Pick<Household, "locations" | "freezerDays">) {
 export function matchesQuery(i: Item, q: string, h?: Pick<Household, "locations" | "flags">): boolean {
   const s = q.trim().toLowerCase();
   if (!s) return true;
-  if (i.name.toLowerCase().includes(s) || i.note.toLowerCase().includes(s)) return true;
+  if (i.name.toLowerCase().includes(s) || i.note.toLowerCase().includes(s) || (i.spot ?? "").toLowerCase().includes(s)) return true;
   if (!h) return false;
   const place = h.locations.find((l) => l.key === i.loc)?.label.toLowerCase() ?? "";
   const flags = h.flags.filter((f) => i.flags.includes(f.id)).map((f) => f.label.toLowerCase());
   return place.includes(s) || flags.some((f) => f.includes(s));
+}
+
+/** The spots already used in a place, in the order they first appear, for the spot picker. */
+export function spotsIn(h: Household, loc: string): string[] {
+  const seen = new Map<string, string>();
+  for (const i of h.items) {
+    const s = i.loc === loc ? i.spot?.trim() : "";
+    if (s && !seen.has(s.toLowerCase())) seen.set(s.toLowerCase(), s);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+/** Within one place, group items by spot (items with no spot last), then use the usual order. */
+export function bySpot(then: (a: Item, b: Item) => number) {
+  return (a: Item, b: Item) => {
+    const x = a.spot?.trim().toLowerCase() ?? "";
+    const y = b.spot?.trim().toLowerCase() ?? "";
+    if (x !== y) return !x ? 1 : !y ? -1 : x.localeCompare(y, undefined, { numeric: true, sensitivity: "base" });
+    return then(a, b);
+  };
 }

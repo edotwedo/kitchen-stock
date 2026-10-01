@@ -28,6 +28,7 @@ export interface ItemRow {
   wrap: string;
   note: string;
   flags: string[];
+  spot?: string | null; // database update 0004
   updated_at?: string;
   updated_by?: string | null;
 }
@@ -52,6 +53,9 @@ export function toRow(householdId: string, i: Item): ItemRow {
     wrap: i.wrap,
     note: i.note,
     flags: i.flags,
+    // Only sent once an item has had a spot ("" means it was cleared), so saving keeps
+    // working on a database without update 0004.
+    ...(i.spot !== undefined ? { spot: i.spot || null } : {}),
   };
 }
 
@@ -68,6 +72,7 @@ export function fromRow(r: ItemRow): Record<string, unknown> {
     wrap: r.wrap,
     note: r.note,
     flags: r.flags,
+    ...(r.spot ? { spot: r.spot } : {}),
     updated: r.updated_at,
     by: r.updated_by ?? undefined,
   };

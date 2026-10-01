@@ -7,6 +7,7 @@ Everything here is run once, in order. The SQL files are pasted into the Supabas
 | `migrations/0001_households_and_items.sql` | Households, members, invites, items, row-level security, live sync |
 | `migrations/0002_members_and_handoff.sql` | Seeing who's in a kitchen, owner invites, roles, leaving (handing a kitchen to a client) |
 | `migrations/0003_reminders.sql` | Phones that have turned reminders on |
+| `migrations/0004_spots.sql` | Shelf spots ("Door", "Top shelf") on items |
 
 ## Sign-in emails
 
