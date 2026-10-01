@@ -73,7 +73,13 @@ export function byDue(h: Pick<Household, "locations" | "freezerDays">) {
   return (a: Item, b: Item) => (dueDate(a, h)?.date ?? "9999").localeCompare(dueDate(b, h)?.date ?? "9999");
 }
 
-export function matchesQuery(i: Item, q: string): boolean {
+/** Search matches the name and note, and (given the household) the place and dietary flags. */
+export function matchesQuery(i: Item, q: string, h?: Pick<Household, "locations" | "flags">): boolean {
   const s = q.trim().toLowerCase();
-  return !s || i.name.toLowerCase().includes(s) || i.note.toLowerCase().includes(s);
+  if (!s) return true;
+  if (i.name.toLowerCase().includes(s) || i.note.toLowerCase().includes(s)) return true;
+  if (!h) return false;
+  const place = h.locations.find((l) => l.key === i.loc)?.label.toLowerCase() ?? "";
+  const flags = h.flags.filter((f) => i.flags.includes(f.id)).map((f) => f.label.toLowerCase());
+  return place.includes(s) || flags.some((f) => f.includes(s));
 }

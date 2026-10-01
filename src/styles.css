@@ -454,3 +454,8 @@ html.printing #root { display: none; }
 }
 .demobar .btn { height: 36px; padding: 0 14px; font-size: 14px; }
 .linkbtn.try { margin-top: 20px; }
+
+/* ---------- undo ---------- */
+.toast.has-undo { display: flex; align-items: center; gap: 14px; padding-right: 8px; }
+.toast button { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--bg); color: var(--ink); font-weight: 700; font-size: 13.5px; }
+.wrap:has(.demobar) .toast { top: calc(60px + env(safe-area-inset-top, 0px)); }

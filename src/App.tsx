@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NoKitchen, Sharing, SignIn } from "./Account";
 import { CookSheet } from "./CookSheet";
 import { PrintView } from "./PrintView";
@@ -11,7 +11,7 @@ import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { mergeList } from "./merge";
-import { clearProblem, endDemo, exportJson, replaceHousehold, saveItem, snapshot, startDemo, useApp } from "./store";
+import { clearProblem, endDemo, exportJson, replaceHousehold, restoreItem, saveItem, snapshot, startDemo, useApp } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
 type Tab = { key: string; label: string; count: number; filter: (i: Item) => boolean; sort?: (a: Item, b: Item) => number; byLocation?: boolean };
@@ -32,19 +32,35 @@ function readTab(): string {
   }
 }
 
+type Toast = { msg: string; undo?: () => void; n: number };
+let toastCount = 0;
+
+/** A short message at the top, with an Undo button when the change can be taken back. */
 function useToast() {
-  const [msg, setMsg] = useState("");
+  const [t, setT] = useState<Toast | null>(null);
   useEffect(() => {
-    if (!msg) return;
-    const t = setTimeout(() => setMsg(""), 2000);
-    return () => clearTimeout(t);
-  }, [msg]);
-  const el = msg ? (
-    <div className="toast" role="status">
-      {msg}
+    if (!t) return;
+    const timer = setTimeout(() => setT(null), t.undo ? 5000 : 2000);
+    return () => clearTimeout(timer);
+  }, [t]);
+  const show = useCallback((msg: string, undo?: () => void) => setT(msg ? { msg, undo, n: ++toastCount } : null), []);
+  const el = t ? (
+    <div className={"toast" + (t.undo ? " has-undo" : "")} role="status" key={t.n}>
+      <span>{t.msg}</span>
+      {t.undo && (
+        <button
+          type="button"
+          onClick={() => {
+            t.undo?.();
+            setT({ msg: "Undone", n: ++toastCount });
+          }}
+        >
+          Undo
+        </button>
+      )}
     </div>
   ) : null;
-  return [el, setMsg] as const;
+  return [el, show] as const;
 }
 
 export default function App() {
@@ -116,15 +132,15 @@ export default function App() {
   const step = (i: Item) => {
     const nx = nextLevel(i.level);
     saveItem(i.id, { level: nx });
-    toast(`${i.name}: ${nx}`);
+    toast(`${i.name}: ${nx}`, () => restoreItem(i));
   };
   const restock = (i: Item) => {
     // A restocked freezer item is a new package, so its quality clock starts today.
     saveItem(i.id, { level: "full", remindOn: "", ...(isFrozen(i, h) ? { frozenOn: toIso(today) } : {}) });
-    toast("Restocked " + i.name);
+    toast("Restocked " + i.name, () => restoreItem(i));
   };
 
-  const visible = items.filter((i) => matchesQuery(i, query));
+  const visible = items.filter((i) => matchesQuery(i, query, h));
   const groups: { title: string; list: Item[]; showLoc: boolean }[] = [];
   if (searching) groups.push({ title: "Search results", list: visible, showLoc: true });
   else if (current.byLocation)

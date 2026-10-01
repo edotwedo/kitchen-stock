@@ -3,12 +3,12 @@ import { suggestFlags } from "./flagLibrary";
 import { DayDot } from "./DayDot";
 import { dayOf, fmtDate } from "./format";
 import { addDays, toIso } from "./logic";
-import { deleteItem, saveItem } from "./store";
+import { deleteItem, restoreItem, saveItem } from "./store";
 import { LEVELS, WRAP_LABELS, WRAPS, type Household, type Item, type Level, type Wrap } from "./types";
 
 export type SheetTarget = { item: Item | null; loc?: string };
 
-export function EditSheet({ h, target, onClose, onSaved }: { h: Household; target: SheetTarget; onClose: () => void; onSaved: (msg: string) => void }) {
+export function EditSheet({ h, target, onClose, onSaved }: { h: Household; target: SheetTarget; onClose: () => void; onSaved: (msg: string, undo?: () => void) => void }) {
   const it = target.item;
   const today = toIso(new Date());
   const [name, setName] = useState(it?.name ?? "");
@@ -41,7 +41,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
     const n = name.trim();
     if (!n) return nameRef.current?.focus();
     saveItem(it?.id ?? null, { name: n, loc, qty: qty.trim(), level, useBy, remindOn, frozenOn: frozenDate, wrap, note: note.trim(), flags });
-    onSaved((it ? "Saved " : "Added ") + n);
+    onSaved((it ? "Saved " : "Added ") + n, it ? () => restoreItem(it) : undefined);
     onClose();
   };
 
@@ -49,7 +49,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
     if (!it) return;
     if (!armed) return setArmed(true);
     deleteItem(it.id);
-    onSaved("Deleted " + it.name);
+    onSaved("Deleted " + it.name, () => restoreItem(it));
     onClose();
   };
 

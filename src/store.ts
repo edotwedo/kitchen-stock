@@ -240,6 +240,15 @@ export function saveItem(id: string | null, patch: Partial<ItemFields>) {
   apply({ ...h, items });
 }
 
+/** Put an item back exactly as it was (undo for a delete, gauge tap or restock). */
+export function restoreItem(item: Item) {
+  const h = app.household;
+  if (!h) return;
+  const restored = { ...item, updated: new Date().toISOString() };
+  const exists = h.items.some((i) => i.id === item.id);
+  apply({ ...h, items: exists ? h.items.map((i) => (i.id === item.id ? restored : i)) : [...h.items, restored] });
+}
+
 export function deleteItem(id: string) {
   const h = app.household;
   if (h) apply({ ...h, items: h.items.filter((i) => i.id !== id) });
