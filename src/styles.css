@@ -459,3 +459,9 @@ html.printing #root { display: none; }
 .toast.has-undo { display: flex; align-items: center; gap: 14px; padding-right: 8px; }
 .toast button { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--bg); color: var(--ink); font-weight: 700; font-size: 13.5px; }
 .wrap:has(.demobar) .toast { top: calc(60px + env(safe-area-inset-top, 0px)); }
+
+/* ---------- back from the store ---------- */
+.storerun { display: flex; flex-direction: column; max-height: 50dvh; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r-md); padding: 4px 10px; }
+.storerun .reviewitem + .reviewitem { border-top: 1px solid var(--line); }
+.storerun .reviewitem input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--brand); flex: none; }
+.storerun-tools { display: flex; justify-content: flex-end; margin-bottom: 6px; }

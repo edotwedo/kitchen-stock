@@ -11,7 +11,8 @@ import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { mergeList } from "./merge";
-import { clearProblem, endDemo, exportJson, replaceHousehold, restoreItem, saveItem, snapshot, startDemo, useApp } from "./store";
+import { clearProblem, endDemo, exportJson, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, useApp } from "./store";
+import { StoreRun } from "./StoreRun";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
 type Tab = { key: string; label: string; count: number; filter: (i: Item) => boolean; sort?: (a: Item, b: Item) => number; byLocation?: boolean };
@@ -72,6 +73,15 @@ export default function App() {
   const [menu, setMenu] = useState(false);
   const [cook, setCook] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [storeRun, setStoreRun] = useState(false);
+  const useFirstCount = h ? h.items.filter((i) => isUseFirst(i, h, new Date())).length : 0;
+
+  // The installed app's icon shows how many things need using first (where the phone supports badges).
+  useEffect(() => {
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+    if (!nav.setAppBadge) return;
+    (useFirstCount ? nav.setAppBadge(useFirstCount) : (nav.clearAppBadge?.() ?? Promise.resolve())).catch(() => {});
+  }, [useFirstCount]);
   const [toastEl, toast] = useToast();
   const today = new Date();
 
@@ -207,6 +217,17 @@ export default function App() {
       )}
 
       <main>
+        {current.key === "shop" && !searching && current.count > 0 && (
+          <div className="cookbar">
+            <p>
+              <strong>Back from the store?</strong>
+              Tick what you bought and restock it all at once.
+            </p>
+            <button className="btn" type="button" onClick={() => setStoreRun(true)}>
+              Restock
+            </button>
+          </div>
+        )}
         {current.key === "first" && !searching && (
           <div className="cookbar">
             <p>
@@ -243,6 +264,17 @@ export default function App() {
         Add item
       </button>
 
+      {storeRun && (
+        <StoreRun
+          h={h}
+          onClose={() => setStoreRun(false)}
+          onRestock={(picked) => {
+            restockItems(picked.map((i) => i.id));
+            setStoreRun(false);
+            toast(`Restocked ${picked.length} ${picked.length === 1 ? "item" : "items"}`, () => restoreItems(picked));
+          }}
+        />
+      )}
       {printing && <PrintView h={h} onClose={() => setPrinting(false)} />}
       {cook && <CookSheet h={h} onClose={() => setCook(false)} onDone={toast} />}
       {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={toast} />}

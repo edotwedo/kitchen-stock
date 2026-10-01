@@ -242,11 +242,32 @@ export function saveItem(id: string | null, patch: Partial<ItemFields>) {
 
 /** Put an item back exactly as it was (undo for a delete, gauge tap or restock). */
 export function restoreItem(item: Item) {
+  restoreItems([item]);
+}
+
+/** Put several items back at once, as one change. */
+export function restoreItems(items: Item[]) {
   const h = app.household;
-  if (!h) return;
-  const restored = { ...item, updated: new Date().toISOString() };
-  const exists = h.items.some((i) => i.id === item.id);
-  apply({ ...h, items: exists ? h.items.map((i) => (i.id === item.id ? restored : i)) : [...h.items, restored] });
+  if (!h || !items.length) return;
+  const updated = new Date().toISOString();
+  const byId = new Map(items.map((i) => [i.id, { ...i, updated }]));
+  const kept = h.items.map((i) => byId.get(i.id) ?? i);
+  const missing = items.filter((i) => !h.items.some((x) => x.id === i.id)).map((i) => byId.get(i.id)!);
+  apply({ ...h, items: [...kept, ...missing] });
+}
+
+/** Restock several items at once: back to full, reminders cleared, a fresh freezer clock. */
+export function restockItems(ids: string[], today = new Date()) {
+  const h = app.household;
+  if (!h || !ids.length) return;
+  const want = new Set(ids);
+  const updated = today.toISOString();
+  const freezers = new Set(h.locations.filter((l) => l.kind === "freezer").map((l) => l.key));
+  const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  apply({
+    ...h,
+    items: h.items.map((i) => (want.has(i.id) ? { ...i, level: "full", remindOn: "", ...(freezers.has(i.loc) ? { frozenOn: day } : {}), updated } : i)),
+  });
 }
 
 export function deleteItem(id: string) {

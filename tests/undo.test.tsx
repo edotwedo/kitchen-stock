@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { sampleKitchen } from "../src/demo";
 import { matchesQuery } from "../src/logic";
 
@@ -47,5 +47,37 @@ describe("undo", () => {
     await undo();
     expect(saved().items).toHaveLength(count);
     expect(saved().items.some((i) => i.name === name)).toBe(true);
+  });
+});
+
+describe("back from the store", () => {
+  it("restocks the ticked items at once, restarts the freezer clock, and undoes as one", async () => {
+    vi.resetModules();
+    localStorage.clear();
+    localStorage.setItem("ks-household-v1", JSON.stringify(sampleKitchen()));
+    localStorage.setItem("ks-tab", "shop");
+    const { default: App } = await import("../src/App");
+    const root = document.createElement("div");
+    document.body.append(root);
+    await act(async () => createRoot(root).render(<App />));
+    const before = saved().items;
+    const shopping = before.filter((i) => i.level === "low" || i.level === "out");
+
+    await act(async () => ([...root.querySelectorAll(".cookbar .btn")].find((b) => b.textContent === "Restock") as HTMLButtonElement).click());
+    const boxes = [...document.querySelectorAll(".storerun input[type=checkbox]")] as HTMLInputElement[];
+    expect(boxes).toHaveLength(shopping.length);
+    await act(async () => boxes[0].click());
+    await act(async () => boxes[1].click());
+    await act(async () => ([...document.querySelectorAll(".sheet .btn.primary")].find((b) => /Restock 2/.test(b.textContent!)) as HTMLButtonElement).click());
+
+    const after = saved().items;
+    const changed = after.filter((i, n) => i.level !== before[n].level);
+    expect(changed).toHaveLength(2);
+    expect(changed.every((i) => i.level === "full")).toBe(true);
+    const frozen = changed.find((i) => i.loc === "freezer");
+    if (frozen) expect(frozen.frozenOn).not.toBe(before.find((b) => b.id === frozen.id)!.frozenOn);
+
+    await act(async () => [...document.querySelectorAll(".toast button")].find((b) => b.textContent === "Undo")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(saved().items.map((i) => i.level)).toEqual(before.map((i) => i.level));
   });
 });
