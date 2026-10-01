@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { importHousehold } from "./importData";
 import type { Household, Item } from "./types";
 
 /**
@@ -13,7 +14,8 @@ const listeners = new Set<() => void>();
 function load(): Household | null {
   try {
     const s = localStorage.getItem(KEY);
-    return s ? (JSON.parse(s) as Household) : null;
+    // Re-read through the importer so lists saved by older versions pick up new fields.
+    return s ? importHousehold(JSON.parse(s)) : null;
   } catch {
     return null;
   }
@@ -53,7 +55,7 @@ export function saveItem(id: string | null, patch: Partial<ItemFields>) {
     ? state.items.map((i) => (i.id === id ? { ...i, ...patch, updated } : i))
     : [
         ...state.items,
-        { name: "", loc: state.locations[0]?.key ?? "pantry", qty: "", level: "full", useBy: "", remindOn: "", note: "", flags: [], ...patch, id: crypto.randomUUID(), updated } as Item,
+        { name: "", loc: state.locations[0]?.key ?? "pantry", qty: "", level: "full", useBy: "", remindOn: "", frozenOn: "", wrap: "regular", note: "", flags: [], ...patch, id: crypto.randomUUID(), updated } as Item,
       ];
   commit({ ...state, items });
 }

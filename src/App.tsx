@@ -1,22 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EditSheet, type SheetTarget } from "./EditSheet";
+import { dueTag, fmtDate } from "./format";
+import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
-import {
-  byLevelThenName,
-  byUseBy,
-  daysUntil,
-  isReminderDue,
-  isShopping,
-  isUseFirst,
-  matchesQuery,
-  nextLevel,
-} from "./logic";
+import { byDue, byLevelThenName, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { exportJson, replaceHousehold, saveItem, useHousehold } from "./store";
-import type { Household, Item } from "./types";
-
-const FILL = { full: 100, half: 55, low: 22, out: 0 };
+import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
 type Tab = { key: string; label: string; count: number; filter: (i: Item) => boolean; sort?: (a: Item, b: Item) => number; byLocation?: boolean };
+
+const BARS: Record<Level, number> = { full: 3, half: 2, low: 1, out: 0 };
 
 function readTab(): string {
   try {
@@ -26,10 +19,19 @@ function readTab(): string {
   }
 }
 
-function fmt(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+function useToast() {
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(""), 2000);
+    return () => clearTimeout(t);
+  }, [msg]);
+  const el = msg ? (
+    <div className="toast" role="status">
+      {msg}
+    </div>
+  ) : null;
+  return [el, setMsg] as const;
 }
 
 export default function App() {
@@ -37,14 +39,17 @@ export default function App() {
   const [tab, setTab] = useState(readTab);
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
-  const [toast, setToast] = useState("");
+  const [menu, setMenu] = useState(false);
+  const [toastEl, toast] = useToast();
   const today = new Date();
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(""), 2200);
-    return () => clearTimeout(t);
-  }, [toast]);
+  if (!h)
+    return (
+      <>
+        <Welcome onDone={toast} />
+        {toastEl}
+      </>
+    );
 
   const pickTab = (k: string) => {
     setTab(k);
@@ -55,11 +60,9 @@ export default function App() {
     }
   };
 
-  if (!h) return <Welcome onLoaded={(msg) => setToast(msg)} toast={toast} />;
-
   const items = h.items;
   const baseTabs: Omit<Tab, "count">[] = [
-    { key: "first", label: "Use first", filter: (i) => isUseFirst(i, today), sort: byUseBy },
+    { key: "first", label: "Use first", filter: (i) => isUseFirst(i, h, today), sort: byDue(h) },
     { key: "shop", label: "Shopping", filter: isShopping, byLocation: true },
     ...h.locations.map((l) => ({ key: "loc:" + l.key, label: l.label, filter: (i: Item) => i.loc === l.key })),
     ...h.flags.map((f) => ({ key: "flag:" + f.id, label: f.label, filter: (i: Item) => i.flags.includes(f.id) })),
@@ -67,71 +70,68 @@ export default function App() {
   ];
   const tabs: Tab[] = baseTabs.map((t) => ({ ...t, count: items.filter(t.filter).length }));
   const current = tabs.find((t) => t.key === tab) ?? tabs[0];
+  const searching = query.trim() !== "";
 
   const step = (i: Item) => {
     const nx = nextLevel(i.level);
     saveItem(i.id, { level: nx });
-    setToast(`${i.name} → ${nx}`);
+    toast(`${i.name}: ${nx}`);
   };
   const restock = (i: Item) => {
-    saveItem(i.id, { level: "full", remindOn: "" });
-    setToast("Restocked " + i.name);
+    // A restocked freezer item is a new package, so its quality clock starts today.
+    saveItem(i.id, { level: "full", remindOn: "", ...(isFrozen(i, h) ? { frozenOn: toIso(today) } : {}) });
+    toast("Restocked " + i.name);
   };
 
   const visible = items.filter((i) => matchesQuery(i, query));
   const groups: { title: string; list: Item[]; showLoc: boolean }[] = [];
-  if (query.trim()) groups.push({ title: "Search results", list: visible, showLoc: true });
+  if (searching) groups.push({ title: "Search results", list: visible, showLoc: true });
   else if (current.byLocation)
     for (const l of h.locations) groups.push({ title: l.label, list: visible.filter((i) => i.loc === l.key && current.filter(i)), showLoc: false });
   else groups.push({ title: current.key === "first" ? "Use these first" : current.label, list: visible.filter(current.filter), showLoc: !current.key.startsWith("loc:") });
-  for (const g of groups) g.list.sort(current.sort && !query.trim() ? current.sort : byLevelThenName);
+  for (const g of groups) g.list.sort(current.sort && !searching ? current.sort : byLevelThenName);
   const shown = groups.length > 1 ? groups.filter((g) => g.list.length) : groups;
 
   const due = items.filter((i) => isReminderDue(i, today)).sort((a, b) => a.remindOn.localeCompare(b.remindOn));
+  const addLoc = current.key.startsWith("loc:") ? current.key.slice(4) : undefined;
 
   return (
     <div className="wrap">
-      <header>
-        <div className="top">
-          <div>
-            <h1>Kitchen Stock</h1>
-            <div className="sub">
-              {items.length} items · {h.locations.map((l) => l.label.toLowerCase()).join(" · ")}
-            </div>
-          </div>
-          <div className="actions">
-            <button className="btn primary" type="button" onClick={() => setSheet({ item: null, loc: current.key.startsWith("loc:") ? current.key.slice(4) : undefined })}>
-              Add item
-            </button>
-          </div>
+      <header className="head">
+        <div className="titlebar">
+          <h1 className="title">Kitchen Stock</h1>
+          <button className="iconbtn" type="button" aria-label="Settings and backup" onClick={() => setMenu(true)}>
+            <MenuIcon />
+          </button>
         </div>
-        <nav className="tabs" aria-label="Where">
+        <label className="search">
+          <SearchIcon />
+          <input type="search" placeholder={`Search ${items.length} items`} aria-label="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <nav className="chips" aria-label="Lists">
           {tabs.map((t) => (
-            <button key={t.key} className="tab" type="button" aria-pressed={t.key === current.key} onClick={() => pickTab(t.key)}>
+            <button key={t.key} className="chip" type="button" aria-pressed={!searching && t.key === current.key} onClick={() => (setQuery(""), pickTab(t.key))}>
               {t.label}
               <span className="n">{t.count}</span>
             </button>
           ))}
         </nav>
-        <input className="search" type="search" placeholder="Search everything" aria-label="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
       </header>
 
-      {due.length > 0 && (
-        <div className="banner" role="region" aria-label="Reminders">
-          <h2>Reminders due</h2>
+      {due.length > 0 && !searching && (
+        <section className="remind" aria-label="Reminders">
+          <h2>Reminders for today</h2>
           <ul>
             {due.map((i) => (
               <li key={i.id}>
-                <button className="name" type="button" onClick={() => setSheet({ item: i })}>
+                <button className="linkish" type="button" onClick={() => setSheet({ item: i })}>
                   {i.name}
                 </button>
-                {" — "}
-                {i.qty ? i.qty + ", " : ""}
-                {i.level}
+                <span>{[i.qty, i.level].filter(Boolean).join(", ")}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       <main>
@@ -139,72 +139,81 @@ export default function App() {
           <section className="group" key={g.title}>
             <h2>
               <span>{g.title}</span>
-              <span>{g.list.length}</span>
+              <span className="n">{g.list.length}</span>
             </h2>
             <div className="list">
               {g.list.length ? (
                 g.list.map((i) => (
-                  <Row key={i.id} item={i} h={h} today={today} showLoc={g.showLoc} shopping={current.key === "shop" && !query.trim()} onStep={step} onRestock={restock} onOpen={() => setSheet({ item: i })} />
+                  <Row key={i.id} item={i} h={h} today={today} showLoc={g.showLoc} shopping={current.key === "shop" && !searching} onStep={step} onRestock={restock} onOpen={() => setSheet({ item: i })} />
                 ))
               ) : (
-                <div className="empty">{emptyCopy(current.key, query)}</div>
+                <div className="empty">{emptyCopy(current.key, searching)}</div>
               )}
             </div>
           </section>
         ))}
       </main>
 
-      <p className="note">Tap the gauge to step an item down (full → half → low → out). Tap a name to edit it. Low and out items land on the Shopping list.</p>
-      <BackupTools onDone={setToast} />
+      <button className="fab" type="button" onClick={() => setSheet({ item: null, loc: addLoc })}>
+        <PlusIcon />
+        Add item
+      </button>
 
-      {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={setToast} />}
-      {toast && (
-        <div className="toast" role="status">
-          {toast}
-        </div>
-      )}
+      {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={toast} />}
+      {menu && <MenuSheet h={h} onClose={() => setMenu(false)} onDone={toast} />}
+      {toastEl}
     </div>
   );
 }
 
-function emptyCopy(tab: string, query: string): string {
-  if (query.trim()) return "Nothing matches that search.";
+function emptyCopy(tab: string, searching: boolean): string {
+  if (searching) return "Nothing matches that search.";
   if (tab === "first") return "Nothing needs using this week.";
-  if (tab === "shop") return "Nothing is running low. Tap a gauge down to low to add it here.";
-  return "Nothing here yet. Add the first item.";
+  if (tab === "shop") return "Nothing is running low. Tap a gauge down to low and it shows up here.";
+  return "Nothing here yet. Tap Add item to log the first one.";
+}
+
+function Gauge({ item, onStep }: { item: Item; onStep: (i: Item) => void }) {
+  const lit = BARS[item.level];
+  return (
+    <button className={"gauge " + item.level} type="button" aria-label={`${item.name}: ${item.level}. Tap to step down`} onClick={() => onStep(item)}>
+      <span className="bars">
+        {[0, 1, 2].map((n) => (
+          <i key={n} className={n < lit ? "on" : ""} />
+        ))}
+      </span>
+      <small>{item.level}</small>
+    </button>
+  );
 }
 
 function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; shopping: boolean; onStep: (i: Item) => void; onRestock: (i: Item) => void; onOpen: () => void }) {
   const { item: i, h, today } = props;
-  const d = daysUntil(i.useBy, today);
+  const tag = dueTag(i, h, today);
   const loc = h.locations.find((l) => l.key === i.loc);
   const flags = h.flags.filter((f) => i.flags.includes(f.id));
   const avoiders = h.people.filter((p) => p.avoids.some((a) => i.flags.includes(a)));
+  const hasMeta = (props.showLoc && loc) || tag || flags.length || i.note;
   return (
     <div className={"row " + i.level}>
-      <button className={"lvl " + i.level} type="button" aria-label={`${i.name}: ${i.level}. Tap to step down`} onClick={() => props.onStep(i)}>
-        <span className="gauge">
-          <i style={{ width: FILL[i.level] + "%" }} />
-        </span>
-        <small>{i.level}</small>
-      </button>
+      <Gauge item={i} onStep={props.onStep} />
       <div style={{ minWidth: 0 }}>
-        <button className="name" type="button" onClick={props.onOpen}>
+        <button className="linkish" type="button" onClick={props.onOpen}>
           {i.name}
         </button>
-        <div className="meta">
-          {props.showLoc && loc && <span className="pill loc">{loc.label}</span>}
-          {i.useBy && d !== null && (
-            <span className={"pill" + (d < 0 ? " past" : d <= 3 ? " soon" : "")}>{d < 0 ? "Past " + fmt(i.useBy) : d === 0 ? "Use today" : "By " + fmt(i.useBy)}</span>
-          )}
-          {flags.map((f) => (
-            <span key={f.id} className="pill flag">
-              {f.label}
-            </span>
-          ))}
-          {avoiders.length > 0 && <span className="pill avoid">Not for {avoiders.map((p) => p.name).join(" or ")}</span>}
-          {i.note && <span>{i.note}</span>}
-        </div>
+        {hasMeta && (
+          <div className="meta">
+            {props.showLoc && loc && <span className="tag">{loc.label}</span>}
+            {tag && <span className={"tag " + tag.tone}>{tag.text}</span>}
+            {flags.map((f) => (
+              <span key={f.id} className="tag flag">
+                {f.label}
+              </span>
+            ))}
+            {avoiders.length > 0 && <span className="tag avoid">Not for {avoiders.map((p) => p.name).join(" or ")}</span>}
+            {i.note && <span>{i.note}</span>}
+          </div>
+        )}
       </div>
       {props.shopping ? (
         <button className="restock" type="button" onClick={() => props.onRestock(i)}>
@@ -217,7 +226,8 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
   );
 }
 
-function useImport(onDone: (msg: string) => void) {
+/** A hidden file picker that loads a list file into the app. */
+function useFilePicker(onDone: (msg: string) => void) {
   const ref = useRef<HTMLInputElement>(null);
   const input = (
     <input
@@ -225,6 +235,7 @@ function useImport(onDone: (msg: string) => void) {
       type="file"
       accept="application/json,.json"
       className="vh"
+      tabIndex={-1}
       onChange={async (e) => {
         const f = e.target.files?.[0];
         e.target.value = "";
@@ -234,7 +245,7 @@ function useImport(onDone: (msg: string) => void) {
           replaceHousehold(h);
           onDone(`Loaded ${h.items.length} items`);
         } catch (err) {
-          onDone(err instanceof ImportError ? err.message : "Couldn't read that file.");
+          onDone(err instanceof ImportError ? err.message : "That file couldn't be read. Pick a .json list file.");
         }
       }}
     />
@@ -242,76 +253,89 @@ function useImport(onDone: (msg: string) => void) {
   return { input, open: () => ref.current?.click() };
 }
 
-function Welcome({ onLoaded, toast }: { onLoaded: (msg: string) => void; toast: string }) {
-  const imp = useImport(onLoaded);
-  const blank = useMemo<Household>(
-    () => ({
+function Welcome({ onDone }: { onDone: (msg: string) => void }) {
+  const picker = useFilePicker(onDone);
+  const startEmpty = () =>
+    replaceHousehold({
       name: "My kitchen",
       locations: [
-        { key: "fridge", label: "Fridge" },
-        { key: "freezer", label: "Freezer" },
-        { key: "pantry", label: "Pantry" },
+        { key: "fridge", label: "Fridge", kind: "fridge" },
+        { key: "freezer", label: "Freezer", kind: "freezer" },
+        { key: "pantry", label: "Pantry", kind: "pantry" },
       ],
+      freezerDays: { ...DEFAULT_FREEZER_DAYS },
       flags: [],
       people: [],
       items: [],
-    }),
-    [],
-  );
+    });
   return (
     <div className="wrap">
-      <header>
-        <h1>Kitchen Stock</h1>
-      </header>
       <div className="welcome">
-        <h2>Get started</h2>
-        <p>Load a kitchen list you already have, or start from an empty kitchen.</p>
-        <div className="actions">
-          <button className="btn primary" type="button" onClick={imp.open}>
+        <h1>Kitchen Stock</h1>
+        <p>Know what's in the freezer, fridge and cupboards, what to use first, and what to buy.</p>
+        <div className="stack">
+          <button className="btn primary" type="button" onClick={picker.open}>
             Load a list file
           </button>
-          <button className="btn ghost" type="button" onClick={() => replaceHousehold(blank)}>
-            Start empty
+          <button className="btn" type="button" onClick={startEmpty}>
+            Start with an empty kitchen
           </button>
         </div>
-        {imp.input}
+        {picker.input}
       </div>
-      {toast && (
-        <div className="toast" role="status">
-          {toast}
-        </div>
-      )}
     </div>
   );
 }
 
-function BackupTools({ onDone }: { onDone: (msg: string) => void }) {
-  const imp = useImport(onDone);
+function MenuSheet({ h, onClose, onDone }: { h: Household; onClose: () => void; onDone: (msg: string) => void }) {
+  const picker = useFilePicker((msg) => {
+    onDone(msg);
+    onClose();
+  });
   const [armed, setArmed] = useState(false);
-  const download = () => {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", esc);
+    return () => document.removeEventListener("keydown", esc);
+  }, [onClose]);
+
+  const backup = () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([exportJson()], { type: "application/json" }));
-    a.download = `kitchen-stock-${new Date().toISOString().slice(0, 10)}.export.json`;
+    a.download = `kitchen-stock-${toIso(new Date())}.export.json`;
     a.click();
     URL.revokeObjectURL(a.href);
+    onDone("Backup saved to your downloads");
   };
+
   return (
-    <div className="toolbar">
-      <button className="btn ghost" type="button" onClick={download}>
-        Save a backup
-      </button>
-      <button
-        className={"btn ghost" + (armed ? " danger" : "")}
-        type="button"
-        onClick={() => {
-          if (!armed) return setArmed(true);
-          setArmed(false);
-          imp.open();
-        }}
-      >
-        {armed ? "Tap again — this replaces your whole list" : "Load a list file"}
-      </button>
-      {imp.input}
+    <div className="shade" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Settings and backup">
+        <h3>{h.name}</h3>
+        <p className="sub">
+          {h.items.length} items in {h.locations.length} places. Freezer food keeps its best quality for {h.freezerDays.regular} days in regular wrap, {h.freezerDays.vacuum} in a vacuum bag and {h.freezerDays.chamber} chamber sealed.
+        </p>
+        <div className="menu">
+          <button className="btn" type="button" onClick={backup}>
+            Save a backup <small>Downloads a file</small>
+          </button>
+          <button
+            className={"btn" + (armed ? " armed" : "")}
+            type="button"
+            onClick={() => {
+              if (!armed) return setArmed(true);
+              setArmed(false);
+              picker.open();
+            }}
+          >
+            {armed ? "Tap again to replace your whole list" : "Load a list file"} <small>{armed ? "" : "Replaces this list"}</small>
+          </button>
+          {picker.input}
+        </div>
+        <p className="sub" style={{ marginTop: 16, marginBottom: 0 }}>
+          Last change {fmtDate(h.items.reduce((m, i) => (i.updated > m ? i.updated : m), "").slice(0, 10) || toIso(new Date()), true)}.
+        </p>
+      </div>
     </div>
   );
 }

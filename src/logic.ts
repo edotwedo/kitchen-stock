@@ -1,4 +1,4 @@
-import { LEVELS, type Item, type Level } from "./types";
+import { LEVELS, type Household, type Item, type Level } from "./types";
 
 /** Days in the Use first window. */
 export const USE_FIRST_DAYS = 7;
@@ -17,10 +17,37 @@ export function daysUntil(iso: string, today: Date): number | null {
   return Math.round((d.getTime() - startOfDay(today).getTime()) / 864e5);
 }
 
-export function isUseFirst(i: Item, today: Date): boolean {
+export function addDays(iso: string, n: number): string {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return toIso(d);
+}
+
+export function toIso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function isFrozen(i: Item, h: Pick<Household, "locations">): boolean {
+  return h.locations.find((l) => l.key === i.loc)?.kind === "freezer";
+}
+
+/**
+ * The date that decides when to use an item. Frozen food stays safe at 0°F, so a
+ * freezer item's date is a quality date from its frozen-on day and wrap; the
+ * printed date only counts for food outside the freezer.
+ */
+export type Due = { date: string; kind: "useBy" | "quality" };
+
+export function dueDate(i: Item, h: Pick<Household, "locations" | "freezerDays">): Due | null {
+  if (isFrozen(i, h)) return i.frozenOn ? { date: addDays(i.frozenOn, h.freezerDays[i.wrap] ?? h.freezerDays.regular), kind: "quality" } : null;
+  return i.useBy ? { date: i.useBy, kind: "useBy" } : null;
+}
+
+export function isUseFirst(i: Item, h: Pick<Household, "locations" | "freezerDays">, today: Date): boolean {
   if (i.level === "out") return false;
-  const d = daysUntil(i.useBy, today);
-  return d !== null && d <= USE_FIRST_DAYS;
+  const due = dueDate(i, h);
+  const d = due && daysUntil(due.date, today);
+  return d !== null && d !== undefined && d <= USE_FIRST_DAYS;
 }
 
 export function isShopping(i: Item): boolean {
@@ -42,8 +69,8 @@ export function byLevelThenName(a: Item, b: Item): number {
   return LEVELS.indexOf(b.level) - LEVELS.indexOf(a.level) || a.name.localeCompare(b.name);
 }
 
-export function byUseBy(a: Item, b: Item): number {
-  return a.useBy.localeCompare(b.useBy);
+export function byDue(h: Pick<Household, "locations" | "freezerDays">) {
+  return (a: Item, b: Item) => (dueDate(a, h)?.date ?? "9999").localeCompare(dueDate(b, h)?.date ?? "9999");
 }
 
 export function matchesQuery(i: Item, q: string): boolean {

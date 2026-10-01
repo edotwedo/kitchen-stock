@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { importHousehold } from "../src/importData";
-import { isShopping, isUseFirst, nextLevel } from "../src/logic";
+import { dueDate, isShopping, isUseFirst, nextLevel } from "../src/logic";
 
 // The real household seed is private and not in the repo. These tests run
 // when it's present locally (kitchen-seed-data.json) and skip otherwise.
@@ -31,8 +31,31 @@ describe.skipIf(!existsSync(SEED))("seed data (Sept 30, 2026 count)", () => {
     expect(h.items.filter(isShopping)).toHaveLength(25);
   });
 
-  it("lists items due within a week under Use first", () => {
-    expect(h.items.filter((i) => isUseFirst(i, COUNTED))).toHaveLength(15);
+  it("lists fridge and cupboard items due within a week under Use first", () => {
+    expect(h.items.filter((i) => isUseFirst(i, h, COUNTED))).toHaveLength(12);
+  });
+
+  it("starts every freezer item's quality clock on the count date", () => {
+    const frozen = h.items.filter((i) => i.loc === "chest" || i.loc === "kitchen");
+    expect(frozen).toHaveLength(60);
+    expect(frozen.every((i) => i.frozenOn === "2026-09-30")).toBe(true);
+    expect(h.locations.filter((l) => l.kind === "freezer").map((l) => l.key)).toEqual(["chest", "kitchen"]);
+  });
+
+  it("gives regular wrap 90 days and vacuum bags a year", () => {
+    const meatballs = h.items.find((i) => i.name === "Meatballs, vacuum-sealed")!;
+    expect(meatballs.wrap).toBe("vacuum");
+    expect(dueDate(meatballs, h)).toEqual({ date: "2027-09-30", kind: "quality" });
+    const roast = h.items.find((i) => i.name === "Angus chuck roast")!;
+    expect(dueDate(roast, h)).toEqual({ date: "2026-12-29", kind: "quality" });
+    // A printed date on a frozen item no longer makes it overdue.
+    expect(isUseFirst(meatballs, h, COUNTED)).toBe(false);
+  });
+
+  it("flags freezer items in the last week of their clock", () => {
+    const roast = h.items.find((i) => i.name === "Angus chuck roast")!;
+    expect(isUseFirst(roast, h, new Date("2026-12-21T12:00:00"))).toBe(false);
+    expect(isUseFirst(roast, h, new Date("2026-12-22T12:00:00"))).toBe(true);
   });
 });
 
