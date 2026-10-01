@@ -21,4 +21,11 @@ describe("landing page link", () => {
     // Nothing from the sample is saved as this visitor's kitchen.
     expect(localStorage.getItem("ks-household-v1")).toBeNull();
   });
+
+  it("keeps ?demo when a tab is in the link too", async () => {
+    history.replaceState(null, "", "/?demo&tab=shop");
+    const { readTab } = await import("../src/App");
+    expect(readTab()).toBe("shop");
+    expect(location.search).toBe("?demo");
+  });
 });

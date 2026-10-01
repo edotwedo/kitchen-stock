@@ -19,11 +19,14 @@ type Tab = { key: string; label: string; count: number; filter: (i: Item) => boo
 
 const BARS: Record<Level, number> = { full: 3, half: 2, low: 1, out: 0 };
 
-function readTab(): string {
+export function readTab(): string {
   // A tapped reminder opens /?tab=first or /?tab=shop.
-  const fromLink = new URLSearchParams(location.search).get("tab");
+  const params = new URLSearchParams(location.search);
+  const fromLink = params.get("tab");
   if (fromLink === "first" || fromLink === "shop") {
-    history.replaceState(null, "", location.pathname);
+    // Tidy the address, but leave anything else in it (like ?demo) for its own handler.
+    params.delete("tab");
+    history.replaceState(null, "", location.pathname + (params.size ? "?" + String(params).replace(/=(&|$)/g, "$1") : ""));
     return fromLink;
   }
   try {
