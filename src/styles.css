@@ -375,3 +375,14 @@ input.code { letter-spacing: 3px; font-variant-numeric: tabular-nums; font-size:
 .titlebar .title { margin-right: auto; }
 .sync { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .sync.off { color: var(--low-ink); background: color-mix(in srgb, var(--low) 16%, transparent); padding: 4px 10px; border-radius: 999px; }
+
+/* ---------- what can I cook ---------- */
+.cookbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); }
+.cookbar p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.cookbar strong { display: block; color: var(--ink); font-size: 15px; }
+.cookbar .btn { flex: none; height: 40px; }
+.prompt {
+  width: 100%; min-height: 160px; padding: 10px 12px; resize: vertical;
+  border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg); color: var(--ink);
+  font: 400 13px/1.45 var(--body);
+}

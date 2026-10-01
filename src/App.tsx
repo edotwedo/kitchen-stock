@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NoKitchen, Sharing, SignIn } from "./Account";
+import { CookSheet } from "./CookSheet";
 import { EditSheet, type SheetTarget } from "./EditSheet";
 import { Settings } from "./Settings";
 import { DayDot } from "./DayDot";
@@ -44,6 +45,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
   const [menu, setMenu] = useState(false);
+  const [cook, setCook] = useState(false);
   const [toastEl, toast] = useToast();
   const today = new Date();
 
@@ -168,6 +170,18 @@ export default function App() {
         </section>
       )}
 
+      {current.key === "first" && !searching && (
+        <div className="cookbar">
+          <p>
+            <strong>What can I cook?</strong>
+            Meal ideas from what needs using first.
+          </p>
+          <button className="btn" type="button" onClick={() => setCook(true)}>
+            Get ideas
+          </button>
+        </div>
+      )}
+
       <main>
         {shown.map((g) => (
           <section className="group" key={g.title}>
@@ -193,6 +207,7 @@ export default function App() {
         Add item
       </button>
 
+      {cook && <CookSheet h={h} onClose={() => setCook(false)} onDone={toast} />}
       {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={toast} />}
       {menu && (
         <Settings
