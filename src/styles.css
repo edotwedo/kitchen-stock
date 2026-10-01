@@ -386,3 +386,43 @@ input.code { letter-spacing: 3px; font-variant-numeric: tabular-nums; font-size:
   border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg); color: var(--ink);
   font: 400 13px/1.45 var(--body);
 }
+
+/* ---------- print sheets: print blue on white, whatever the theme (see the design system's PrintSheet) ---------- */
+html.printing #root { display: none; }
+.printview { --print: #0000aa; min-height: 100dvh; background: var(--bg); padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 40px; }
+.print-controls { max-width: 760px; margin: 0 auto 20px; display: flex; flex-direction: column; gap: 12px; }
+.print-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.print-bar h3 { font: 800 26px/1 var(--display); letter-spacing: 0.3px; margin: 0; }
+.print-bar .right { display: flex; gap: 8px; }
+.paper-stack { display: flex; flex-direction: column; gap: 20px; align-items: center; }
+.paper {
+  width: 100%; max-width: 760px; background: #ffffff; color: var(--print); padding: 28px 28px 20px;
+  border-radius: 4px; box-shadow: var(--shadow); font: 400 12.5px/1.35 var(--body);
+}
+.paper-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.paper-head h1 { font: 800 30px/1 var(--display); letter-spacing: 0.3px; margin: 0; color: var(--print); }
+.paper-head span { font-size: 11px; }
+.paper table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.paper th { text-align: left; font-weight: 700; border-bottom: 1.5px solid var(--print); padding: 4px 6px; }
+.paper td { border-bottom: 0.75px solid rgba(0, 0, 170, 0.35); padding: 5px 6px; vertical-align: top; }
+.paper td small { display: block; font-size: 10.5px; opacity: 0.85; }
+.paper .count { width: 52px; text-align: center; }
+.paper .box { display: inline-block; width: 12px; height: 12px; border: 1.25px solid var(--print); border-radius: 2px; flex: none; }
+.shop-group h2 { font: 800 19px/1.1 var(--display); letter-spacing: 0.3px; margin: 14px 0 4px; color: var(--print); }
+.shop-group ul { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 28px; }
+.shop-group li { display: flex; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 0.75px solid rgba(0, 0, 170, 0.35); break-inside: avoid; }
+.shop-group .what { flex: 1; }
+.shop-group .lvl { font-size: 10.5px; }
+@media (max-width: 520px) { .shop-group ul { columns: 1; } .paper { padding: 18px 14px; } }
+
+@media print {
+  @page { margin: 12mm; }
+  html, body { background: #ffffff !important; }
+  .print-controls { display: none; }
+  .printview { padding: 0; background: #ffffff; }
+  .paper-stack { display: block; }
+  .paper { box-shadow: none; max-width: none; padding: 0; border-radius: 0; break-after: page; }
+  .paper:last-child { break-after: auto; }
+  .paper tr { break-inside: avoid; }
+  .paper thead { display: table-header-group; }
+}

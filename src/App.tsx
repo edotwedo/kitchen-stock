@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NoKitchen, Sharing, SignIn } from "./Account";
 import { CookSheet } from "./CookSheet";
+import { PrintView } from "./PrintView";
 import { EditSheet, type SheetTarget } from "./EditSheet";
 import { Settings } from "./Settings";
 import { DayDot } from "./DayDot";
@@ -46,6 +47,7 @@ export default function App() {
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
   const [menu, setMenu] = useState(false);
   const [cook, setCook] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [toastEl, toast] = useToast();
   const today = new Date();
 
@@ -207,6 +209,7 @@ export default function App() {
         Add item
       </button>
 
+      {printing && <PrintView h={h} onClose={() => setPrinting(false)} />}
       {cook && <CookSheet h={h} onClose={() => setCook(false)} onDone={toast} />}
       {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={toast} />}
       {menu && (
@@ -214,6 +217,7 @@ export default function App() {
           h={h}
           onClose={() => setMenu(false)}
           sharing={app.cloud ? <Sharing app={app} /> : null}
+          onPrint={() => (setMenu(false), setPrinting(true))}
           backup={<BackupButtons onDone={toast} onLoaded={() => setMenu(false)} />}
         />
       )}

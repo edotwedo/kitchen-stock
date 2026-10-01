@@ -177,7 +177,7 @@ function Library({ h }: { h: Household }) {
   );
 }
 
-export function Settings({ h, onClose, backup, sharing }: { h: Household; onClose: () => void; backup: React.ReactNode; sharing: React.ReactNode }) {
+export function Settings({ h, onClose, backup, sharing, onPrint }: { h: Household; onClose: () => void; backup: React.ReactNode; sharing: React.ReactNode; onPrint: () => void }) {
   const [kind, setKind] = useState<LocationKind>("pantry");
 
   useEffect(() => {
@@ -296,6 +296,16 @@ export function Settings({ h, onClose, backup, sharing }: { h: Household; onClos
             {sharing}
           </section>
         )}
+
+        <section className="set">
+          <h4>Print</h4>
+          <p className="hint">Inventory sheets for each place, or the shopping list, in blue ink.</p>
+          <div className="menu">
+            <button className="btn" type="button" onClick={onPrint}>
+              Print sheets <small>Opens a preview</small>
+            </button>
+          </div>
+        </section>
 
         <section className="set">
           <h4>Backup</h4>
