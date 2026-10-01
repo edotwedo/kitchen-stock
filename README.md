@@ -1,13 +1,21 @@
 # Kitchen Stock
 
-A household kitchen inventory app, built as an installable web app (PWA) that works on Android and iPhone.
+A household kitchen inventory app, built as an installable web app (PWA) for Android and iPhone. A professional sets up a household's kitchen, and the household keeps using the app to know what's in the freezer, what to use first, and what to buy.
 
-- **Location tabs** for each place in the kitchen, plus **Use first** (use-by date within 7 days) and **Shopping** (anything low or out).
-- **Tap the gauge** to step an item full → half → low → out. Tap **Restocked** on the shopping list to reset it to full.
-- **Dietary flags per household** (pork, gluten, allergens, whatever the household needs), and **per-person rules**, so an item can be marked "Not for Sam" while it's fine for everyone else.
-- **Backup and import** of the whole list as a JSON file.
+## What it does
 
-Coming next: shared household accounts with live sync, push reminders for use-by dates and the weekly shopping list, and a "What can I cook?" helper.
+- **Lists by place** (chest freezer, fridge, cupboards, whatever the kitchen has), plus **Use first** (due within 7 days) and **Shopping** (anything low or out).
+- **A tap gauge** on every item steps it full, half, low, out. **Restocked** on the shopping list resets it.
+- **Freezer quality clock.** Frozen food stays safe at 0°F, so freezer items track best quality instead of an expiry: 90 days in regular wrap, a year vacuum-bagged, two years chamber-sealed (adjustable). Newly frozen items show a **day dot** in the commercial-kitchen weekday colors for their first week.
+- **Dietary flags for anything**: a library of allergens, religious and ethical flags, and health flags, plus custom ones. Each person in the household can **avoid** a flag ("Not for Sam") or **limit** it ("Limit for Alex"). **Find items** scans names and notes for likely matches to review and tag in one go.
+- **What can I cook?** builds a question from what needs using first and everyone's rules, to paste into any AI chat app. Food past its use-by date is never suggested.
+- **Shared households** with email-code sign-in, invite codes, live sync between phones, and several kitchens per account.
+- **Works offline.** The app opens with no signal, and changes made offline queue on the phone and sync when it's back online.
+- **Print sheets**: inventory sheets per place with count boxes, and a shopping list, in blue ink.
+
+## Built with
+
+React and TypeScript on Vite, `vite-plugin-pwa` for install and offline, and Supabase (Postgres with row-level security, auth and realtime) for shared data. Tests run on Vitest.
 
 ## Run it locally
 
@@ -20,6 +28,8 @@ npm test
 npm run build
 ```
 
+Without Supabase settings the app runs in device-only mode. To connect a database, copy `.env.example` to `.env.local`, fill in the project URL and publishable key, and run `supabase/migrations/0001_households_and_items.sql` in the Supabase SQL editor.
+
 ## Privacy
 
-No household data lives in this repo. Lists are loaded from a file at runtime and stored on the device. Real inventory files, `.env` secrets and notes are git-ignored.
+No household data lives in this repo. Real inventory files, `.env` files and notes are git-ignored, and every table is protected by row-level security so people only see kitchens they belong to.
