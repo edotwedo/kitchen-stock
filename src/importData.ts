@@ -100,7 +100,7 @@ export function importHousehold(raw: unknown): Household {
   const people = Array.isArray(r.people)
     ? r.people
         .filter((p) => p && str(p.name))
-        .map((p) => ({ id: str(p.id) || crypto.randomUUID(), name: str(p.name), avoids: Array.isArray(p.avoids) ? p.avoids.map(str) : [] }))
+        .map((p) => ({ id: str(p.id) || crypto.randomUUID(), name: str(p.name), avoids: Array.isArray(p.avoids) ? p.avoids.map(str) : [], limits: Array.isArray(p.limits) ? p.limits.map(str) : [] }))
     : [];
 
   return { name: str(r.household) || str(r.name) || "My kitchen", locations, freezerDays, flags, people, items };

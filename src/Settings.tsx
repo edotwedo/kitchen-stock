@@ -9,13 +9,16 @@ import {
   removePerson,
   renameFlag,
   renameHousehold,
+  ruleFor,
   setFreezerDays,
-  SUGGESTED_FLAGS,
+  setRule,
+  tagItems,
   updateLocation,
   updatePerson,
 } from "./household";
+import { FLAG_LIBRARY, findCandidates, type FlagGroup } from "./flagLibrary";
 import { updateHousehold } from "./store";
-import { WRAP_LABELS, WRAPS, type Household, type LocationKind } from "./types";
+import { WRAP_LABELS, WRAPS, type Flag, type Household, type LocationKind, type Rule } from "./types";
 
 const KINDS: { value: LocationKind; label: string }[] = [
   { value: "freezer", label: "Freezer" },
@@ -84,10 +87,98 @@ function RemoveButton({ label, onRemove, disabledReason }: { label: string; onRe
   );
 }
 
+const RULE_NEXT: Record<string, Rule | null> = { none: "avoid", avoid: "limit", limit: null };
+
+/** One flag on a person: tap to cycle no rule → avoid → limit → no rule. */
+function RuleChip({ flag, rule, onChange }: { flag: Flag; rule: Rule | null; onChange: (r: Rule | null) => void }) {
+  return (
+    <button type="button" className={"rule " + (rule ?? "none")} aria-label={`${flag.label}: ${rule ?? "no rule"}. Tap to change`} onClick={() => onChange(RULE_NEXT[rule ?? "none"])}>
+      {flag.label}
+      {rule && <small>{rule}</small>}
+    </button>
+  );
+}
+
+/** A household flag: rename, remove, and review likely matches before tagging them. */
+function FlagRow({ flag, h }: { flag: Flag; h: Household }) {
+  const [review, setReview] = useState<string[] | null>(null);
+  const tagged = h.items.filter((i) => i.flags.includes(flag.id)).length;
+  const candidates = findCandidates(h.items, flag);
+  const lower = flag.label.toLowerCase();
+  return (
+    <div className="flagrow">
+      <div className="line">
+        <SavedText label="Flag name" value={flag.label} onSave={(v) => updateHousehold(renameFlag(flag.id, v))} />
+        <span className="hint small nowrap">{tagged} items</span>
+        <RemoveButton label={flag.label} onRemove={() => updateHousehold(removeFlag(flag.id))} />
+      </div>
+      {review === null ? (
+        candidates.length > 0 && (
+          <button className="linkbtn" type="button" onClick={() => setReview(candidates.map((c) => c.id))}>
+            Find items: {candidates.length} might contain {lower}
+          </button>
+        )
+      ) : (
+        <div className="review">
+          <p className="hint small">Untick anything without {lower} in it.</p>
+          {candidates.map((c) => (
+            <label key={c.id} className="reviewitem">
+              <input type="checkbox" checked={review.includes(c.id)} onChange={(e) => setReview(e.target.checked ? [...review, c.id] : review.filter((x) => x !== c.id))} />
+              <span>
+                {c.name}
+                {c.note && <small>{c.note}</small>}
+              </span>
+            </label>
+          ))}
+          <div className="actions">
+            <button className="btn" type="button" onClick={() => setReview(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn primary"
+              type="button"
+              disabled={!review.length}
+              onClick={() => {
+                updateHousehold(tagItems(flag.id, review));
+                setReview(null);
+              }}
+            >
+              Tag {review.length} {review.length === 1 ? "item" : "items"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const GROUPS: FlagGroup[] = ["Allergens", "Religious & ethical", "Health & diet"];
+
+/** Ready-made flags this household doesn't have yet, one tap to add. */
+function Library({ h }: { h: Household }) {
+  const have = new Set(h.flags.map((f) => f.label.toLowerCase()));
+  const groups = GROUPS.map((g) => ({ g, flags: FLAG_LIBRARY.filter((f) => f.group === g && !have.has(f.label.toLowerCase())) })).filter((x) => x.flags.length);
+  if (!groups.length) return null;
+  return (
+    <div className="library">
+      {groups.map(({ g, flags }) => (
+        <div key={g} className="libgroup">
+          <span className="hint small">{g}</span>
+          <div className="suggest">
+            {flags.map((f) => (
+              <button key={f.label} className="chip" type="button" onClick={() => updateHousehold(addFlag(f.label))}>
+                + {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Settings({ h, onClose, backup }: { h: Household; onClose: () => void; backup: React.ReactNode }) {
   const [kind, setKind] = useState<LocationKind>("pantry");
-  const used = (flagId: string) => h.items.filter((i) => i.flags.includes(flagId)).length;
-  const suggestions = SUGGESTED_FLAGS.filter((s) => !h.flags.some((f) => f.label.toLowerCase() === s.toLowerCase()));
 
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -114,7 +205,7 @@ export function Settings({ h, onClose, backup }: { h: Household; onClose: () => 
 
         <section className="set">
           <h4>People</h4>
-          <p className="hint">Everyone who eats from this kitchen. Items with something a person avoids get a "Not for" tag.</p>
+          <p className="hint">Everyone who eats from this kitchen. Tap a flag once for avoid (can't have it), again for limit (go easy), and again to clear.</p>
           {h.people.map((p) => (
             <div className="card" key={p.id}>
               <div className="card-head">
@@ -122,21 +213,13 @@ export function Settings({ h, onClose, backup }: { h: Household; onClose: () => 
                 <RemoveButton label={p.name} onRemove={() => updateHousehold(removePerson(p.id))} />
               </div>
               {h.flags.length ? (
-                <div className="checks" role="group" aria-label={`What ${p.name} avoids`}>
-                  <span className="hint small">Avoids</span>
+                <div className="checks" role="group" aria-label={`${p.name}'s rules`}>
                   {h.flags.map((f) => (
-                    <label key={f.id} className="check">
-                      <input
-                        type="checkbox"
-                        checked={p.avoids.includes(f.id)}
-                        onChange={(e) => updateHousehold(updatePerson(p.id, { avoids: e.target.checked ? [...p.avoids, f.id] : p.avoids.filter((a) => a !== f.id) }))}
-                      />
-                      {f.label}
-                    </label>
+                    <RuleChip key={f.id} flag={f} rule={ruleFor(p, f.id)} onChange={(r) => updateHousehold(setRule(p.id, f.id, r))} />
                   ))}
                 </div>
               ) : (
-                <p className="hint small">Add dietary flags below to set what {p.name} avoids.</p>
+                <p className="hint small">Add dietary flags below, then set what {p.name} avoids or limits.</p>
               )}
             </div>
           ))}
@@ -145,23 +228,11 @@ export function Settings({ h, onClose, backup }: { h: Household; onClose: () => 
 
         <section className="set">
           <h4>Dietary flags</h4>
-          <p className="hint">Things an item can contain. Tick them on each item, and each flag gets its own list.</p>
+          <p className="hint">Anything an item can contain that someone needs to know about. Each flag gets its own list, and Find items checks names and notes for likely matches.</p>
           {h.flags.map((f) => (
-            <div className="line" key={f.id}>
-              <SavedText label="Flag name" value={f.label} onSave={(v) => updateHousehold(renameFlag(f.id, v))} />
-              <span className="hint small nowrap">{used(f.id)} items</span>
-              <RemoveButton label={f.label} onRemove={() => updateHousehold(removeFlag(f.id))} />
-            </div>
+            <FlagRow key={f.id} flag={f} h={h} />
           ))}
-          {suggestions.length > 0 && (
-            <div className="suggest" aria-label="Common flags">
-              {suggestions.map((s) => (
-                <button key={s} className="chip" type="button" onClick={() => updateHousehold(addFlag(s))}>
-                  + {s}
-                </button>
-              ))}
-            </div>
-          )}
+          <Library h={h} />
           <AddRow placeholder="Add another flag" onAdd={(v) => updateHousehold(addFlag(v))} />
         </section>
 

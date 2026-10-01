@@ -69,7 +69,8 @@ export default function App() {
     ...h.flags.map((f) => ({ key: "flag:" + f.id, label: f.label, filter: (i: Item) => i.flags.includes(f.id) })),
     { key: "all", label: "All", filter: () => true, byLocation: true },
   ];
-  const tabs: Tab[] = baseTabs.map((t) => ({ ...t, count: items.filter(t.filter).length }));
+  // A flag only earns a tab once something is tagged with it.
+  const tabs: Tab[] = baseTabs.map((t) => ({ ...t, count: items.filter(t.filter).length })).filter((t) => !t.key.startsWith("flag:") || t.count > 0);
   const current = tabs.find((t) => t.key === tab) ?? tabs[0];
   const searching = query.trim() !== "";
 
@@ -194,6 +195,7 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
   const loc = h.locations.find((l) => l.key === i.loc);
   const flags = h.flags.filter((f) => i.flags.includes(f.id));
   const avoiders = h.people.filter((p) => p.avoids.some((a) => i.flags.includes(a)));
+  const limiters = h.people.filter((p) => !avoiders.includes(p) && p.limits.some((a) => i.flags.includes(a)));
   const hasMeta = (props.showLoc && loc) || tag || flags.length || i.note;
   return (
     <div className={"row " + i.level}>
@@ -212,6 +214,7 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
               </span>
             ))}
             {avoiders.length > 0 && <span className="tag avoid">Not for {avoiders.map((p) => p.name).join(" or ")}</span>}
+            {limiters.length > 0 && <span className="tag limit">Limit for {limiters.map((p) => p.name).join(" and ")}</span>}
             {i.note && <span>{i.note}</span>}
           </div>
         )}

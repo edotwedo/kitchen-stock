@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { suggestFlags } from "./flagLibrary";
 import { fmtDate } from "./format";
 import { addDays, toIso } from "./logic";
 import { deleteItem, saveItem } from "./store";
@@ -52,6 +53,8 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
   };
 
   const changed = it?.updated ? new Date(it.updated) : null;
+  // Flags this item probably has, from its name and note. Shown as dashed chips to confirm.
+  const maybe = suggestFlags({ name, note, flags }, h.flags);
 
   return (
     <div className="shade" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -130,10 +133,10 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
             </label>
             {h.flags.length > 0 && (
               <div className="field full">
-                <span>Dietary flags</span>
+                <span>Dietary flags{maybe.length > 0 && <span className="hint small">. Dashed ones look likely from the name.</span>}</span>
                 <div className="checks">
                   {h.flags.map((f) => (
-                    <label key={f.id} className="check">
+                    <label key={f.id} className={"check" + (maybe.includes(f) ? " maybe" : "")} title={maybe.includes(f) ? "The name suggests this one" : undefined}>
                       <input type="checkbox" checked={flags.includes(f.id)} onChange={(e) => setFlags(e.target.checked ? [...flags, f.id] : flags.filter((x) => x !== f.id))} />
                       {f.label}
                     </label>

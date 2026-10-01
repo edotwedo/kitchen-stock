@@ -1,12 +1,9 @@
-import type { Household, LocationKind, Person, Wrap } from "./types";
+import type { Household, LocationKind, Person, Rule, Wrap } from "./types";
 
 /**
  * Household settings changes. Each takes a household and returns a new one, so
  * they can be tested without a screen and applied with updateHousehold().
  */
-
-/** Common things households avoid. Offered as one-tap suggestions in settings. */
-export const SUGGESTED_FLAGS = ["Pork", "Beef", "Shellfish", "Fish", "Alcohol", "Gluten", "Dairy", "Eggs", "Peanuts", "Tree nuts", "Soy", "Sesame"];
 
 export function slug(label: string): string {
   return label.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "x";
@@ -22,13 +19,38 @@ function uniqueId(base: string, taken: string[]): string {
 
 export const addPerson = (name: string) => (h: Household): Household => ({
   ...h,
-  people: [...h.people, { id: crypto.randomUUID(), name: name.trim(), avoids: [] }],
+  people: [...h.people, { id: crypto.randomUUID(), name: name.trim(), avoids: [], limits: [] }],
 });
 
 export const updatePerson = (id: string, patch: Partial<Omit<Person, "id">>) => (h: Household): Household => ({
   ...h,
   people: h.people.map((p) => (p.id === id ? { ...p, ...patch } : p)),
 });
+
+/** Set what a person does about a flag: avoid it, limit it, or nothing (null). */
+export const setRule = (personId: string, flagId: string, rule: Rule | null) => (h: Household): Household => ({
+  ...h,
+  people: h.people.map((p) =>
+    p.id !== personId
+      ? p
+      : {
+          ...p,
+          avoids: rule === "avoid" ? [...new Set([...p.avoids, flagId])] : p.avoids.filter((a) => a !== flagId),
+          limits: rule === "limit" ? [...new Set([...p.limits, flagId])] : p.limits.filter((a) => a !== flagId),
+        },
+  ),
+});
+
+export function ruleFor(p: Person, flagId: string): Rule | null {
+  return p.avoids.includes(flagId) ? "avoid" : p.limits.includes(flagId) ? "limit" : null;
+}
+
+/** Tag a batch of items with a flag (after someone has reviewed the list). */
+export const tagItems = (flagId: string, itemIds: string[]) => (h: Household): Household => {
+  const ids = new Set(itemIds);
+  const updated = new Date().toISOString();
+  return { ...h, items: h.items.map((i) => (ids.has(i.id) && !i.flags.includes(flagId) ? { ...i, flags: [...i.flags, flagId], updated } : i)) };
+};
 
 export const removePerson = (id: string) => (h: Household): Household => ({
   ...h,
@@ -53,7 +75,7 @@ export const renameFlag = (id: string, label: string) => (h: Household): Househo
 export const removeFlag = (id: string) => (h: Household): Household => ({
   ...h,
   flags: h.flags.filter((f) => f.id !== id),
-  people: h.people.map((p) => ({ ...p, avoids: p.avoids.filter((a) => a !== id) })),
+  people: h.people.map((p) => ({ ...p, avoids: p.avoids.filter((a) => a !== id), limits: p.limits.filter((a) => a !== id) })),
   items: h.items.map((i) => (i.flags.includes(id) ? { ...i, flags: i.flags.filter((f) => f !== id) } : i)),
 });
 

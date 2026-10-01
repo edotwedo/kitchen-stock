@@ -11,7 +11,7 @@ const SEED = `${process.cwd()}/kitchen-seed-data.json`;
 describe.skipIf(!existsSync(SEED))("app screens with the seed", () => {
   it("renders tabs, steps a gauge, and restocks from Shopping", async () => {
     const h = importHousehold(JSON.parse(readFileSync(SEED, "utf8")));
-    h.people = [{ id: "p1", name: "Sam", avoids: ["pork"] }, { id: "p2", name: "Alex", avoids: [] }];
+    h.people = [{ id: "p1", name: "Sam", avoids: ["pork"], limits: [] }, { id: "p2", name: "Alex", avoids: [], limits: ["pork"] }];
     localStorage.setItem("ks-household-v1", JSON.stringify(h));
     localStorage.setItem("ks-tab", "flag:pork");
     const { default: App } = await import("../src/App");
@@ -26,6 +26,7 @@ describe.skipIf(!existsSync(SEED))("app screens with the seed", () => {
     expect(root.querySelectorAll(".row")).toHaveLength(6);
     expect(root.querySelectorAll(".tag.avoid")).toHaveLength(6);
     expect(root.querySelector(".tag.avoid")!.textContent).toBe("Not for Sam");
+    expect(root.querySelector(".tag.limit")!.textContent).toBe("Limit for Alex");
 
     // Step the first pork item's gauge down one level.
     const first = root.querySelector(".row")!;

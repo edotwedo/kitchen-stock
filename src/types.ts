@@ -30,12 +30,15 @@ export interface Flag {
   label: string;
 }
 
-/** A household member and the flags they avoid. */
+/** A household member: flags they can't have at all, and flags they should go easy on. */
 export interface Person {
   id: string;
   name: string;
   avoids: string[];
+  limits: string[];
 }
+
+export type Rule = "avoid" | "limit";
 
 export interface Item {
   id: string;
