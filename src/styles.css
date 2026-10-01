@@ -476,3 +476,20 @@ html.printing #root { display: none; }
 .spotorder { display: flex; flex-direction: column; gap: 4px; margin: -2px 0 10px 14px; padding-left: 12px; border-left: 2px solid var(--line); }
 .spotline { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
 .spotline .updown button { height: 30px; }
+
+/* ---------- walk-through count ---------- */
+.walk-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.walk-bar { height: 6px; border-radius: 99px; background: var(--sunk); overflow: hidden; margin: 8px 0 18px; }
+.walk-bar span { display: block; height: 100%; background: var(--brand); transition: width .2s; }
+.walk-spot { margin: 0; font: 700 13px var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.walk-spot.new { color: var(--half); }
+.walk-name { margin: 4px 0 18px; font: 800 34px/1.05 var(--display); min-height: 2.1em; }
+.walk-name small { display: block; margin-top: 6px; font: 500 15px var(--body); color: var(--muted); }
+.walk-levels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.walk-levels .lvl { height: 84px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); color: var(--ink);
+  font: 800 22px var(--display); text-transform: uppercase; letter-spacing: .02em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.walk-levels .lvl small { font: 500 12px var(--body); text-transform: none; color: var(--muted); letter-spacing: 0; }
+.walk-levels .lvl.full { border-color: var(--full); } .walk-levels .lvl.half { border-color: var(--half); }
+.walk-levels .lvl.low { border-color: var(--low); } .walk-levels .lvl.out { border-color: var(--out); }
+.walk-levels .lvl[aria-pressed="true"] { border-width: 3px; background: var(--sunk); }
+.walk-done .big { font: 800 34px var(--display); margin: 10px 0 4px; }

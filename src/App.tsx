@@ -13,6 +13,7 @@ import { byDue, bySpot, byLevelThenName, daysUntil, isFrozen, isReminderDue, isS
 import { mergeList } from "./merge";
 import { clearProblem, endDemo, exportJson, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, useApp } from "./store";
 import { StoreRun } from "./StoreRun";
+import { Walkthrough } from "./Walkthrough";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
 type Tab = { key: string; label: string; count: number; filter: (i: Item) => boolean; sort?: (a: Item, b: Item) => number; byLocation?: boolean };
@@ -77,6 +78,7 @@ export default function App() {
   const [cook, setCook] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [storeRun, setStoreRun] = useState(false);
+  const [counting, setCounting] = useState<string | null>(null);
   const useFirstCount = h ? h.items.filter((i) => isUseFirst(i, h, new Date())).length : 0;
 
   // The installed app's icon shows how many things need using first (where the phone supports badges).
@@ -245,6 +247,17 @@ export default function App() {
             </button>
           </div>
         )}
+        {current.key.startsWith("loc:") && !searching && current.count > 1 && (
+          <div className="cookbar">
+            <p>
+              <strong>Counting the {current.label.toLowerCase()}?</strong>
+              Go spot by spot with big buttons.
+            </p>
+            <button className="btn" type="button" onClick={() => setCounting(current.key.slice(4))}>
+              Count
+            </button>
+          </div>
+        )}
         {current.key === "first" && !searching && (
           <div className="cookbar">
             <p>
@@ -289,6 +302,16 @@ export default function App() {
             restockItems(picked.map((i) => i.id));
             setStoreRun(false);
             toast(`Restocked ${picked.length} ${picked.length === 1 ? "item" : "items"}`, () => restoreItems(picked));
+          }}
+        />
+      )}
+      {counting && (
+        <Walkthrough
+          h={h}
+          loc={counting}
+          onClose={(changed) => {
+            setCounting(null);
+            if (changed.length) toast(`Counted. ${changed.length} ${changed.length === 1 ? "item" : "items"} changed`, () => restoreItems(changed));
           }}
         />
       )}
