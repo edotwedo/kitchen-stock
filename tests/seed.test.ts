@@ -23,7 +23,7 @@ describe.skipIf(!existsSync(SEED))("seed data (Sept 30, 2026 count)", () => {
   });
 
   it("turns the prototype's pork checkbox into a flag", () => {
-    expect(h.flags).toEqual([{ id: "pork", label: "Contains pork" }]);
+    expect(h.flags).toEqual([{ id: "pork", label: "Pork" }]);
     expect(h.items.filter((i) => i.flags.includes("pork"))).toHaveLength(6);
   });
 

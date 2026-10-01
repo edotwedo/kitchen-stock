@@ -20,7 +20,7 @@ describe.skipIf(!existsSync(SEED))("app screens with the seed", () => {
     await act(async () => createRoot(root).render(<App />));
 
     const tabs = [...root.querySelectorAll(".chip")].map((t) => t.textContent);
-    expect(tabs).toContain("Contains pork6");
+    expect(tabs).toContain("Pork6");
     expect(tabs).toContain("Shopping25");
     expect(tabs).toContain("All214");
     expect(root.querySelectorAll(".row")).toHaveLength(6);

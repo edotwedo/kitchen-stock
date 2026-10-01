@@ -46,6 +46,11 @@ export function replaceHousehold(h: Household) {
   commit(h);
 }
 
+/** Apply a change from household.ts (people, flags, places, freezer days). */
+export function updateHousehold(change: (h: Household) => Household) {
+  if (state) commit(change(state));
+}
+
 export type ItemFields = Omit<Item, "id" | "updated" | "by">;
 
 export function saveItem(id: string | null, patch: Partial<ItemFields>) {

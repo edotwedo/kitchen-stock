@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EditSheet, type SheetTarget } from "./EditSheet";
-import { dueTag, fmtDate } from "./format";
+import { Settings } from "./Settings";
+import { dueTag } from "./format";
 import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, byLevelThenName, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
@@ -100,7 +101,7 @@ export default function App() {
       <header className="head">
         <div className="titlebar">
           <h1 className="title">Kitchen Stock</h1>
-          <button className="iconbtn" type="button" aria-label="Settings and backup" onClick={() => setMenu(true)}>
+          <button className="iconbtn" type="button" aria-label="Kitchen settings" onClick={() => setMenu(true)}>
             <MenuIcon />
           </button>
         </div>
@@ -160,7 +161,7 @@ export default function App() {
       </button>
 
       {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={toast} />}
-      {menu && <MenuSheet h={h} onClose={() => setMenu(false)} onDone={toast} />}
+      {menu && <Settings h={h} onClose={() => setMenu(false)} backup={<BackupButtons onDone={toast} onLoaded={() => setMenu(false)} />} />}
       {toastEl}
     </div>
   );
@@ -287,17 +288,12 @@ function Welcome({ onDone }: { onDone: (msg: string) => void }) {
   );
 }
 
-function MenuSheet({ h, onClose, onDone }: { h: Household; onClose: () => void; onDone: (msg: string) => void }) {
+function BackupButtons({ onDone, onLoaded }: { onDone: (msg: string) => void; onLoaded: () => void }) {
   const picker = useFilePicker((msg) => {
     onDone(msg);
-    onClose();
+    onLoaded();
   });
   const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", esc);
-    return () => document.removeEventListener("keydown", esc);
-  }, [onClose]);
 
   const backup = () => {
     const a = document.createElement("a");
@@ -309,33 +305,23 @@ function MenuSheet({ h, onClose, onDone }: { h: Household; onClose: () => void; 
   };
 
   return (
-    <div className="shade" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label="Settings and backup">
-        <h3>{h.name}</h3>
-        <p className="sub">
-          {h.items.length} items in {h.locations.length} places. Freezer food keeps its best quality for {h.freezerDays.regular} days in regular wrap, {h.freezerDays.vacuum} in a vacuum bag and {h.freezerDays.chamber} chamber sealed.
-        </p>
-        <div className="menu">
-          <button className="btn" type="button" onClick={backup}>
-            Save a backup <small>Downloads a file</small>
-          </button>
-          <button
-            className={"btn" + (armed ? " armed" : "")}
-            type="button"
-            onClick={() => {
-              if (!armed) return setArmed(true);
-              setArmed(false);
-              picker.open();
-            }}
-          >
-            {armed ? "Tap again to replace your whole list" : "Load a list file"} <small>{armed ? "" : "Replaces this list"}</small>
-          </button>
-          {picker.input}
-        </div>
-        <p className="sub" style={{ marginTop: 16, marginBottom: 0 }}>
-          Last change {fmtDate(h.items.reduce((m, i) => (i.updated > m ? i.updated : m), "").slice(0, 10) || toIso(new Date()), true)}.
-        </p>
-      </div>
+    <div className="menu">
+      <button className="btn" type="button" onClick={backup}>
+        Save a backup <small>Downloads a file</small>
+      </button>
+      <button
+        className={"btn" + (armed ? " armed" : "")}
+        type="button"
+        onBlur={() => setArmed(false)}
+        onClick={() => {
+          if (!armed) return setArmed(true);
+          setArmed(false);
+          picker.open();
+        }}
+      >
+        {armed ? "Tap again to replace your whole list" : "Load a list file"} <small>{armed ? "" : "Replaces this list"}</small>
+      </button>
+      {picker.input}
     </div>
   );
 }

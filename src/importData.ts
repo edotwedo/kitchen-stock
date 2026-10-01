@@ -22,7 +22,7 @@ function guessKind(key: string, label: string): LocationKind {
   return "other";
 }
 
-const PORK: Flag = { id: "pork", label: "Contains pork" };
+const PORK: Flag = { id: "pork", label: "Pork" };
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const date = (v: unknown): string => (/^\d{4}-\d{2}-\d{2}$/.test(str(v)) ? str(v) : "");
