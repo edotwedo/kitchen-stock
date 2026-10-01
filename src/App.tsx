@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { NoKitchen, Sharing, SignIn } from "./Account";
 import { EditSheet, type SheetTarget } from "./EditSheet";
 import { Settings } from "./Settings";
-import { dueTag } from "./format";
+import { DayDot } from "./DayDot";
+import { dayOf, dueTag } from "./format";
 import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
-import { byDue, byLevelThenName, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
+import { byDue, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { clearProblem, exportJson, replaceHousehold, saveItem, useApp } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
@@ -225,11 +226,14 @@ function Gauge({ item, onStep }: { item: Item; onStep: (i: Item) => void }) {
 function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; shopping: boolean; onStep: (i: Item) => void; onRestock: (i: Item) => void; onOpen: () => void }) {
   const { item: i, h, today } = props;
   const tag = dueTag(i, h, today);
+  // Like a kitchen's rotation stickers, the day dot is for this week's stock: it shows for 7 days after freezing.
+  const frozenAgo = isFrozen(i, h) ? daysUntil(i.frozenOn, today) : null;
+  const dot = frozenAgo !== null && frozenAgo <= 0 && frozenAgo > -7 ? dayOf(i.frozenOn) : null;
   const loc = h.locations.find((l) => l.key === i.loc);
   const flags = h.flags.filter((f) => i.flags.includes(f.id));
   const avoiders = h.people.filter((p) => p.avoids.some((a) => i.flags.includes(a)));
   const limiters = h.people.filter((p) => !avoiders.includes(p) && p.limits.some((a) => i.flags.includes(a)));
-  const hasMeta = (props.showLoc && loc) || tag || flags.length || i.note;
+  const hasMeta = (props.showLoc && loc) || dot || tag || flags.length || i.note;
   return (
     <div className={"row " + i.level}>
       <Gauge item={i} onStep={props.onStep} />
@@ -239,6 +243,7 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
         </button>
         {hasMeta && (
           <div className="meta">
+            {dot && <DayDot day={dot} />}
             {props.showLoc && loc && <span className="tag">{loc.label}</span>}
             {tag && <span className={"tag " + tag.tone}>{tag.text}</span>}
             {flags.map((f) => (

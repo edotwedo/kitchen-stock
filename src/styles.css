@@ -1,61 +1,78 @@
-/* Phone-first single column: sticky header (title, search, place chips), grouped lists, floating add button, sheets slide up from the bottom. */
+/* Phone-first single column: sticky header (title, search, place chips), grouped lists, floating add button, sheets slide up from the bottom.
+   Look: "Day Dot" — label-maker white, deep navy ink, colorblind-safe level colors (teal / blue / amber / vermilion),
+   and the commercial-kitchen day-dot colors on freezer dates. Headings in Big Shoulders, text in Public Sans. */
 :root {
-  --bg: #edf1f5;
+  --bg: #f4f5f2;
   --surface: #ffffff;
-  --sunk: #e3e9ef;
-  --ink: #14233a;
-  --muted: #5a6a7d;
-  --line: #d4dce5;
-  --brand: #1d3a63;
+  --sunk: #eceee9;
+  --ink: #13263b;
+  --muted: #5d6874;
+  --line: #dde1dc;
+  --brand: #13263b;
   --brand-ink: #ffffff;
-  --full: #2c7a4b;
-  --half: #2f6ea8;
-  --low: #a8670b;
-  --out: #b3261e;
-  --focus: #2f6ea8;
-  --shade: rgba(12, 22, 36, 0.5);
-  --shadow: 0 1px 2px rgba(20, 35, 58, 0.06), 0 8px 24px rgba(20, 35, 58, 0.08);
-  --display: "Oswald", "Arial Narrow", sans-serif;
-  --body: "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --full: #00765a;
+  --half: #0067a3;
+  --low: #c98400;
+  --low-ink: #8f5a00;
+  --out: #b84300;
+  --on-out: #ffffff;
+  --focus: #0067a3;
+  --shade: rgba(14, 24, 36, 0.5);
+  --shadow: 0 1px 2px rgba(19, 38, 59, 0.06), 0 8px 24px rgba(19, 38, 59, 0.07);
+  /* Day dots: the food-service standard, one color per weekday (Sunday first, like Date.getDay()). */
+  --day-0: #202020;
+  --day-1: #1f5fbf;
+  --day-2: #f2c514;
+  --day-3: #c8202f;
+  --day-4: #7a4a24;
+  --day-5: #2b8a3e;
+  --day-6: #ef7d16;
+  --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r-sm: 8px;
-  --r-md: 14px;
-  --r-lg: 22px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-tape: 6px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0d1520;
-    --surface: #152131;
-    --sunk: #0f1926;
-    --ink: #e6edf5;
-    --muted: #93a3b5;
-    --line: #243347;
-    --brand: #8fb6e8;
-    --brand-ink: #0d1520;
-    --full: #63c08a;
-    --half: #7fb2e3;
-    --low: #e5ad55;
-    --out: #f0857b;
-    --focus: #8fb6e8;
+    --bg: #10161c;
+    --surface: #19222b;
+    --sunk: #131b22;
+    --ink: #e9eef2;
+    --muted: #9ba6b0;
+    --line: #2a3540;
+    --brand: #e9eef2;
+    --brand-ink: #10161c;
+    --full: #3fc29a;
+    --half: #56b4e9;
+    --low: #f0b43c;
+    --low-ink: #f0b43c;
+    --out: #f08a4b;
+    --on-out: #10161c;
+    --focus: #56b4e9;
     --shade: rgba(0, 0, 0, 0.6);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0d1520;
-  --surface: #152131;
-  --sunk: #0f1926;
-  --ink: #e6edf5;
-  --muted: #93a3b5;
-  --line: #243347;
-  --brand: #8fb6e8;
-  --brand-ink: #0d1520;
-  --full: #63c08a;
-  --half: #7fb2e3;
-  --low: #e5ad55;
-  --out: #f0857b;
-  --focus: #8fb6e8;
+  --bg: #10161c;
+  --surface: #19222b;
+  --sunk: #131b22;
+  --ink: #e9eef2;
+  --muted: #9ba6b0;
+  --line: #2a3540;
+  --brand: #e9eef2;
+  --brand-ink: #10161c;
+  --full: #3fc29a;
+  --half: #56b4e9;
+  --low: #f0b43c;
+  --low-ink: #f0b43c;
+  --out: #f08a4b;
+  --on-out: #10161c;
+  --focus: #56b4e9;
   --shade: rgba(0, 0, 0, 0.6);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
@@ -90,7 +107,7 @@ button { cursor: pointer; }
   border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 .titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.title { font: 600 26px/1 var(--display); letter-spacing: 0.2px; margin: 0; }
+.title { font: 800 30px/1 var(--display); letter-spacing: 0.3px; margin: 0; }
 .iconbtn {
   width: 40px; height: 40px; border-radius: 50%;
   display: grid; place-items: center;
@@ -114,7 +131,7 @@ button { cursor: pointer; }
 .chip {
   flex: none; height: 34px; padding: 0 12px;
   display: inline-flex; align-items: center; gap: 6px;
-  border-radius: 999px; border: 1px solid var(--line);
+  border-radius: var(--r-tape); border: 1px solid var(--line);
   background: var(--surface); font-weight: 600; font-size: 13.5px; white-space: nowrap;
 }
 .chip .n { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 500; }
@@ -127,7 +144,7 @@ button { cursor: pointer; }
   border-radius: var(--r-md); background: var(--surface);
   border-left: 4px solid var(--low); box-shadow: var(--shadow);
 }
-.remind h2 { font: 600 16px var(--display); margin: 0 0 4px; }
+.remind h2 { font: 800 19px var(--display); letter-spacing: 0.3px; margin: 0 0 4px; }
 .remind ul { margin: 0; padding: 0; list-style: none; }
 .remind li { padding: 4px 0; display: flex; gap: 8px; align-items: baseline; }
 .remind li span { color: var(--muted); font-size: 13px; }
@@ -136,7 +153,7 @@ button { cursor: pointer; }
 .group { margin-top: 22px; }
 .group > h2 {
   display: flex; justify-content: space-between; align-items: baseline;
-  margin: 0 4px 8px; font: 600 18px var(--display); letter-spacing: 0.2px;
+  margin: 0 4px 8px; font: 800 21px var(--display); letter-spacing: 0.4px;
 }
 .group > h2 .n { font: 500 13px var(--body); color: var(--muted); font-variant-numeric: tabular-nums; }
 .list { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
@@ -150,11 +167,11 @@ button { cursor: pointer; }
 .meta { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; font-size: 12.5px; color: var(--muted); align-items: center; }
 .tag {
   display: inline-flex; align-items: center; height: 21px; padding: 0 8px;
-  border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap;
   background: var(--sunk); color: var(--ink);
 }
-.tag.past { background: var(--out); color: var(--surface); }
-.tag.soon { background: color-mix(in srgb, var(--low) 18%, transparent); color: var(--low); }
+.tag.past { background: var(--out); color: var(--on-out); }
+.tag.soon { background: color-mix(in srgb, var(--low) 18%, transparent); color: var(--low-ink); }
 .tag.quiet { background: transparent; color: var(--muted); padding: 0; font-weight: 500; }
 .tag.flag { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
 .tag.avoid { background: color-mix(in srgb, var(--out) 12%, transparent); color: var(--out); }
@@ -178,7 +195,7 @@ button { cursor: pointer; }
 .gauge small { font-size: 10px; font-weight: 600; line-height: 1; text-transform: capitalize; }
 .gauge.full { --level: var(--full); }
 .gauge.half { --level: var(--half); }
-.gauge.low { --level: var(--low); }
+.gauge.low { --level: var(--low-ink); }
 .gauge.out { --level: var(--out); }
 .gauge.out .bars::after { content: ""; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; margin-top: -1px; background: currentColor; transform: rotate(-30deg); border-radius: 1px; }
 
@@ -203,7 +220,7 @@ button { cursor: pointer; }
   animation: rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .sheet::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
-.sheet h3 { font: 600 22px var(--display); margin: 0 0 4px; }
+.sheet h3 { font: 800 26px/1.05 var(--display); letter-spacing: 0.3px; margin: 0 0 4px; }
 .sheet .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
 @keyframes rise { from { transform: translateY(40px); opacity: 0.4; } }
 @keyframes fade { from { opacity: 0; } }
@@ -246,7 +263,7 @@ button { cursor: pointer; }
 }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 .btn.danger { color: var(--out); border-color: transparent; background: transparent; padding: 0 8px; }
-.btn.danger.armed { background: var(--out); color: var(--surface); padding: 0 14px; }
+.btn.danger.armed { background: var(--out); color: var(--on-out); padding: 0 14px; }
 
 .menu { display: flex; flex-direction: column; gap: 8px; }
 .menu .btn { justify-content: space-between; width: 100%; }
@@ -255,7 +272,7 @@ button { cursor: pointer; }
 
 /* ---------- welcome ---------- */
 .welcome { padding-top: 18vh; }
-.welcome h1 { font: 600 44px/1 var(--display); margin: 0 0 12px; }
+.welcome h1 { font: 800 52px/0.95 var(--display); letter-spacing: 0.3px; margin: 0 0 12px; }
 .welcome p { color: var(--muted); margin: 0 0 24px; max-width: 34ch; font-size: 16px; }
 .welcome .stack { display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
 
@@ -278,7 +295,7 @@ button { cursor: pointer; }
 .sheet-top h3 { margin: 0; }
 .set { padding: 18px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
 .set:first-of-type { border-top: 0; padding-top: 8px; }
-.set h4 { font: 600 18px var(--display); margin: 0; }
+.set h4 { font: 800 21px var(--display); letter-spacing: 0.3px; margin: 0; }
 .set input, .set select {
   height: 42px; padding: 0 12px; min-width: 0; width: 100%;
   border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg); color: var(--ink); font-size: 15px;
@@ -328,7 +345,7 @@ button { cursor: pointer; }
 .reviewitem small { display: block; color: var(--muted); font-size: 12.5px; }
 .library { display: flex; flex-direction: column; gap: 10px; }
 .libgroup { display: flex; flex-direction: column; gap: 6px; }
-.tag.limit { background: color-mix(in srgb, var(--low) 16%, transparent); color: var(--low); }
+.tag.limit { background: color-mix(in srgb, var(--low) 16%, transparent); color: var(--low-ink); }
 .check.maybe { border-style: dashed; border-color: var(--half); color: var(--half); }
 
 /* ---------- sign in / set up ---------- */
@@ -341,3 +358,15 @@ input.code { letter-spacing: 3px; font-variant-numeric: tabular-nums; font-size:
 .welcome .join { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
 .welcome .linkbtn { margin-top: 28px; }
 .formerror { color: var(--out); font-weight: 600; margin: 14px 0 0; max-width: 360px; }
+
+/* ---------- day dots: the weekday a freezer item was frozen, in the kitchen-standard colors ---------- */
+.daydot {
+  display: inline-grid; place-items: center; flex: none;
+  width: 30px; height: 21px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.4px; color: #ffffff;
+  background: var(--dot);
+}
+.daydot.d2 { color: #1b1b1b; }
+/* Sunday's black dot needs an edge to show on a dark screen. */
+.daydot.d0 { box-shadow: 0 0 0 1px var(--line); }
+.withdot { display: inline-flex; align-items: center; gap: 8px; min-height: 21px; }

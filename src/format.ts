@@ -26,3 +26,13 @@ export function dueTag(i: Item, h: Household, today: Date): { text: string; tone
   if (d <= 3) return { text: "Use by " + fmtDate(due.date), tone: "soon" };
   return { text: "Use by " + fmtDate(due.date), tone: "quiet" };
 }
+
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** The weekday something was frozen, for its day dot (0 = Sunday, like the kitchen chart). */
+export function dayOf(iso: string): { n: number; short: string; long: string } | null {
+  const d = new Date(iso + "T00:00:00");
+  if (!iso || isNaN(d.getTime())) return null;
+  const n = d.getDay();
+  return { n, short: DAYS[n].slice(0, 3).toUpperCase(), long: `Frozen ${DAYS[n]}, ${fmtDate(iso, true)}` };
+}

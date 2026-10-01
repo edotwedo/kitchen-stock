@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { suggestFlags } from "./flagLibrary";
-import { fmtDate } from "./format";
+import { DayDot } from "./DayDot";
+import { dayOf, fmtDate } from "./format";
 import { addDays, toIso } from "./logic";
 import { deleteItem, saveItem } from "./store";
 import { LEVELS, WRAP_LABELS, WRAPS, type Household, type Item, type Level, type Wrap } from "./types";
@@ -95,7 +96,9 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
             {frozen ? (
               <>
                 <label className="field">
-                  Frozen on
+                  <span className="withdot">
+                    Frozen on {dayOf(frozenDate) && <DayDot day={dayOf(frozenDate)!} />}
+                  </span>
                   <input type="date" value={frozenDate} max={today} onChange={(e) => setFrozenOn(e.target.value)} />
                 </label>
                 <label className="field">
