@@ -36,7 +36,7 @@ export function SignIn() {
 
   return (
     <div className="wrap">
-      <div className="welcome">
+      <main className="welcome">
         <h1>Kitchen Stock</h1>
         {!sent ? (
           <form
@@ -80,7 +80,7 @@ export function SignIn() {
         <button className="linkbtn try" type="button" onClick={startDemo}>
           Just looking? Try it with a sample kitchen
         </button>
-      </div>
+      </main>
     </div>
   );
 }
@@ -94,7 +94,7 @@ export function NoKitchen({ email }: { email: string | null }) {
 
   return (
     <div className="wrap">
-      <div className="welcome">
+      <main className="welcome">
         <h1>Set up a kitchen</h1>
         <p>Signed in as {email}. Start a kitchen of your own, or join one with a code someone sent you.</p>
         <div className="stack">
@@ -124,7 +124,7 @@ export function NoKitchen({ email }: { email: string | null }) {
         <button className="linkbtn" type="button" onClick={() => void signOut()}>
           Sign out
         </button>
-      </div>
+      </main>
     </div>
   );
 }

@@ -69,10 +69,10 @@ export default function App() {
   if (app.status === "loading" && !h)
     return (
       <div className="wrap">
-        <div className="welcome">
+        <main className="welcome">
           <h1>Kitchen Stock</h1>
           <p>Loading your kitchen…</p>
-        </div>
+        </main>
       </div>
     );
   if (app.status === "signed-out") return <SignIn />;
@@ -190,19 +190,19 @@ export default function App() {
         </section>
       )}
 
-      {current.key === "first" && !searching && (
-        <div className="cookbar">
-          <p>
-            <strong>What can I cook?</strong>
-            Meal ideas from what needs using first.
-          </p>
-          <button className="btn" type="button" onClick={() => setCook(true)}>
-            Get ideas
-          </button>
-        </div>
-      )}
-
       <main>
+        {current.key === "first" && !searching && (
+          <div className="cookbar">
+            <p>
+              <strong>What can I cook?</strong>
+              Meal ideas from what needs using first.
+            </p>
+            <button className="btn" type="button" onClick={() => setCook(true)}>
+              Get ideas
+            </button>
+          </div>
+        )}
+
         {shown.map((g) => (
           <section className="group" key={g.title}>
             <h2>
@@ -321,6 +321,7 @@ function useFilePicker(onDone: (msg: string) => void, mode: "replace" | "add" = 
       accept="application/json,.json"
       className="vh"
       tabIndex={-1}
+      aria-label={mode === "add" ? "Choose a list file to add" : "Choose a list file to load"}
       onChange={async (e) => {
         const f = e.target.files?.[0];
         e.target.value = "";
@@ -363,7 +364,7 @@ function Welcome({ onDone }: { onDone: (msg: string) => void }) {
     });
   return (
     <div className="wrap">
-      <div className="welcome">
+      <main className="welcome">
         <h1>Kitchen Stock</h1>
         <p>Know what's in the freezer, fridge and cupboards, what to use first, and what to buy.</p>
         <div className="stack">
@@ -378,7 +379,7 @@ function Welcome({ onDone }: { onDone: (msg: string) => void }) {
           </button>
         </div>
         {picker.input}
-      </div>
+      </main>
     </div>
   );
 }

@@ -55,7 +55,7 @@ export function PrintView({ h, onClose }: { h: Household; onClose: () => void })
   }, [onClose]);
 
   return createPortal(
-    <div className="printview">
+    <main className="printview">
       <div className="print-controls">
         <div className="print-bar">
           <h3>Print sheets</h3>
@@ -152,7 +152,7 @@ export function PrintView({ h, onClose }: { h: Household; onClose: () => void })
           ))
         )}
       </div>
-    </div>,
+    </main>,
     document.body,
   );
 }
