@@ -445,3 +445,12 @@ html.printing #root { display: none; }
 .notice-preview { display: flex; flex-direction: column; gap: 6px; }
 .notice { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--r-md); background: var(--sunk); font-size: 14px; white-space: pre-line; }
 .notice strong { font-weight: 600; }
+
+/* ---------- demo ---------- */
+.demobar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 0 -16px; padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+  background: color-mix(in srgb, var(--half) 14%, var(--bg)); color: var(--ink); font-size: 14px;
+}
+.demobar .btn { height: 36px; padding: 0 14px; font-size: 14px; }
+.linkbtn.try { margin-top: 20px; }

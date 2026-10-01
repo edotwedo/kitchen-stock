@@ -11,7 +11,7 @@ import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { mergeList } from "./merge";
-import { clearProblem, exportJson, replaceHousehold, saveItem, snapshot, useApp } from "./store";
+import { clearProblem, endDemo, exportJson, replaceHousehold, saveItem, snapshot, startDemo, useApp } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
 type Tab = { key: string; label: string; count: number; filter: (i: Item) => boolean; sort?: (a: Item, b: Item) => number; byLocation?: boolean };
@@ -138,6 +138,16 @@ export default function App() {
 
   return (
     <div className="wrap">
+      {app.demo && (
+        <div className="demobar" role="status">
+          <span>
+            <strong>Demo kitchen.</strong> Try anything; nothing is saved.
+          </span>
+          <button className="btn" type="button" onClick={endDemo}>
+            Exit demo
+          </button>
+        </div>
+      )}
       <header className="head">
         <div className="titlebar">
           <h1 className="title">{app.cloud ? h.name : "Kitchen Stock"}</h1>
@@ -362,6 +372,9 @@ function Welcome({ onDone }: { onDone: (msg: string) => void }) {
           </button>
           <button className="btn" type="button" onClick={startEmpty}>
             Start with an empty kitchen
+          </button>
+          <button className="linkbtn try" type="button" onClick={startDemo}>
+            Just looking? Try it with a sample kitchen
           </button>
         </div>
         {picker.input}

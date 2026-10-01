@@ -213,4 +213,23 @@ describe("syncing the shared list", () => {
     expect(s.snapshot().status).toBe("ready");
     expect(s.snapshot().household?.items).toHaveLength(2);
   });
+
+  it("demo mode sends nothing, keeps the real kitchen untouched, and exits back to it", async () => {
+    const s = await freshStore();
+    await s.openKitchen("hh");
+    db.state.sent = [];
+    s.startDemo();
+    expect(s.snapshot().demo).toBe(true);
+    expect(s.snapshot().household?.name).toBe("Sample kitchen");
+    const first = s.snapshot().household!.items[0];
+    s.saveItem(first.id, { level: "out" });
+    s.deleteItem(s.snapshot().household!.items[1].id);
+    await settle();
+    expect(db.state.sent).toEqual([]); // nothing reached the database
+    expect(localStorage.getItem("ks-cache-v1-hh")).not.toContain("Sample kitchen");
+    s.endDemo();
+    expect(s.snapshot().demo).toBe(false);
+    expect(s.snapshot().household?.name).toBe("Test kitchen");
+    expect(s.snapshot().kitchenId).toBe("hh");
+  });
 });

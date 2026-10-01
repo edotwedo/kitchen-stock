@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createInvite, createKitchen, deviceList, joinKitchen, listMembers, openKitchen, removeMember, sendCode, setMemberRole, signOut, verifyCode, type AppState, type Member } from "./store";
+import { createInvite, createKitchen, deviceList, joinKitchen, listMembers, openKitchen, removeMember, sendCode, setMemberRole, signOut, startDemo, verifyCode, type AppState, type Member } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household } from "./types";
 
 const EMPTY_KITCHEN: Household = {
@@ -77,6 +77,9 @@ export function SignIn() {
           </form>
         )}
         {error && <p className="formerror">{error}</p>}
+        <button className="linkbtn try" type="button" onClick={startDemo}>
+          Just looking? Try it with a sample kitchen
+        </button>
       </div>
     </div>
   );

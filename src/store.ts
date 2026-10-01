@@ -1,6 +1,7 @@
 import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { useSyncExternalStore } from "react";
 import { diff, fromRow, householdFrom, settingsOf, supabase, toRow, type HouseholdRow, type ItemRow } from "./cloud";
+import { sampleKitchen } from "./demo";
 import { importHousehold } from "./importData";
 import { emptyOutbox, isEmpty, isOffline, record, settle, size, type Outbox } from "./outbox";
 import type { Household, Item } from "./types";
@@ -36,6 +37,8 @@ export interface AppState {
   pending: number;
   /** The last send failed for lack of signal. */
   offline: boolean;
+  /** Trying the app with sample data: nothing is saved or synced. */
+  demo: boolean;
 }
 
 const LOCAL_KEY = "ks-household-v1";
@@ -56,6 +59,7 @@ let app: AppState = {
   problem: null,
   pending: 0,
   offline: false,
+  demo: false,
 };
 let channel: RealtimeChannel | null = null;
 let outbox: Outbox = emptyOutbox();
@@ -83,7 +87,7 @@ function writeJson(k: string, h: Household | null) {
 
 function set(patch: Partial<AppState>) {
   app = { ...app, ...patch };
-  if ("household" in patch) {
+  if ("household" in patch && !app.demo) {
     if (!app.cloud) writeJson(LOCAL_KEY, app.household);
     else if (app.kitchenId && app.household) writeJson(cacheKey(app.kitchenId), app.household);
   }
@@ -107,6 +111,24 @@ export function useHousehold(): Household | null {
 export function snapshot(): AppState {
   return app;
 }
+
+/** Try the app with a sample kitchen. Nothing is saved, synced or sent anywhere. */
+export function startDemo() {
+  beforeDemo = { status: app.status, household: app.household, kitchenId: app.kitchenId, cloud: app.cloud };
+  set({ demo: true, cloud: false, kitchenId: null, status: "ready", household: sampleKitchen() });
+}
+
+/** Leave the demo and go back to exactly where things were. */
+export function endDemo() {
+  const back = beforeDemo ?? { status: supabase ? "signed-out" : "ready", household: null, kitchenId: null, cloud: !!supabase };
+  set({ demo: false });
+  set({ ...back });
+  beforeDemo = null;
+  // Someone may have signed in (say, in another tab) while the demo was open.
+  if (supabase) void refreshKitchens();
+}
+
+let beforeDemo: Pick<AppState, "status" | "household" | "kitchenId" | "cloud"> | null = null;
 
 export function clearProblem() {
   set({ problem: null });
@@ -261,7 +283,7 @@ function friendly(msg: string): string {
 // ---------- kitchens ----------
 
 async function loadKitchens(session: Session) {
-  if (!supabase) return;
+  if (!supabase || app.demo) return;
   set({ email: session.user.email ?? null, userId: session.user.id });
   const remembered = readString(KITCHEN_KEY);
   const { data, error } = await supabase.from("members").select("role, households(id, name)").eq("user_id", session.user.id);
@@ -313,7 +335,7 @@ function readKitchens(): Kitchen[] {
 }
 
 export async function openKitchen(id: string) {
-  if (!supabase) return;
+  if (!supabase || app.demo) return;
   try {
     localStorage.setItem(KITCHEN_KEY, id);
   } catch {
