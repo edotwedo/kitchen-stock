@@ -58,6 +58,7 @@ const db = vi.hoisted(() => {
     channel: () => channel,
     removeChannel: () => Promise.resolve(),
     auth: {
+      getSession: () => Promise.resolve({ data: { session: state.session }, error: null }),
       onAuthStateChange: (cb: (event: string, session: unknown) => void) => {
         if (state.session) cb("INITIAL_SESSION", state.session);
         return { data: { subscription: { unsubscribe() {} } } };
@@ -196,5 +197,20 @@ describe("syncing the shared list", () => {
     expect((await s.listMembers()).members?.map((m) => `${m.email}:${m.role}`)).toEqual(["organizer@example.com:owner", "client@example.com:member"]);
     expect(await s.setMemberRole("u2", "owner")).toBe(null);
     expect(db.state.sent.at(-1)).toEqual({ table: "rpc", op: "set_member_role", payload: { h: "hh", member: "u2", new_role: "owner" } });
+  });
+
+  it("on a new phone with no signal, waits instead of offering to set up a new kitchen", async () => {
+    db.state.session = { user: { id: "u1", email: "cook@example.com" } };
+    db.state.mode = "offline";
+    const s = await freshStore();
+    await vi.runOnlyPendingTimersAsync();
+    expect(s.snapshot().status).toBe("loading");
+    expect(s.snapshot().problem).toContain("No signal");
+
+    db.state.mode = "ok";
+    window.dispatchEvent(new Event("online"));
+    await vi.runOnlyPendingTimersAsync();
+    expect(s.snapshot().status).toBe("ready");
+    expect(s.snapshot().household?.items).toHaveLength(2);
   });
 });

@@ -271,7 +271,8 @@ async function loadKitchens(session: Session) {
       set({ kitchens: saved });
       await openKitchen(remembered);
     } else {
-      set({ problem: "Couldn't reach the shared list. Check your connection.", status: app.household ? "ready" : "no-kitchen" });
+      // Stay on "loading" rather than offering to set up a new kitchen; back online retries.
+      set({ problem: "No signal. Your kitchen will load when you're back online.", status: app.household ? "ready" : "loading" });
     }
     return;
   }
@@ -334,7 +335,9 @@ export async function openKitchen(id: string) {
     supabase.from("items").select("*").eq("household_id", id).range(0, 4999),
   ]);
   if (hh.error || items.error) {
-    set({ problem: "Couldn't load the shared list. Showing the last copy on this phone.", status: cached ? "ready" : "no-kitchen" });
+    // With no copy on this phone, keep "loading" (not "set up a kitchen", which could
+    // lead to a duplicate kitchen); coming back online retries.
+    set({ problem: cached ? "Couldn't load the shared list. Showing the last copy on this phone." : "No signal. Your kitchen will load when you're back online." });
     return;
   }
   if (app.kitchenId !== id) return; // switched kitchens while loading
@@ -373,6 +376,8 @@ function listen(id: string) {
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "households", filter: `id=eq.${id}` }, (p) => {
       const h = app.household;
       if (!h || app.kitchenId !== id) return;
+      // A settings change still waiting to be sent from this phone wins over the echo.
+      if (outbox.settings) return;
       const row = p.new as HouseholdRow;
       // Settings only: keep the same item objects so the next change doesn't resend every item.
       const settings = householdFrom(row, []);
@@ -486,6 +491,7 @@ if (supabase && typeof window !== "undefined") {
   // Back online: send what's waiting, then pick up anything others changed.
   window.addEventListener("online", () => {
     if (app.kitchenId) void openKitchen(app.kitchenId);
+    else if (app.email) void refreshKitchens();
   });
   // A slow retry in case the browser never says it's back online.
   setInterval(() => {
