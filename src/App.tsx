@@ -9,7 +9,8 @@ import { dayOf, dueTag } from "./format";
 import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
-import { clearProblem, exportJson, replaceHousehold, saveItem, useApp } from "./store";
+import { mergeList } from "./merge";
+import { clearProblem, exportJson, replaceHousehold, saveItem, snapshot, useApp } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
 type Tab = { key: string; label: string; count: number; filter: (i: Item) => boolean; sort?: (a: Item, b: Item) => number; byLocation?: boolean };
@@ -292,8 +293,8 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
   );
 }
 
-/** A hidden file picker that loads a list file into the app. */
-function useFilePicker(onDone: (msg: string) => void) {
+/** A hidden file picker that loads a list file: replacing the whole list, or adding to it. */
+function useFilePicker(onDone: (msg: string) => void, mode: "replace" | "add" = "replace") {
   const ref = useRef<HTMLInputElement>(null);
   const input = (
     <input
@@ -307,9 +308,17 @@ function useFilePicker(onDone: (msg: string) => void) {
         e.target.value = "";
         if (!f) return;
         try {
-          const h = importHousehold(JSON.parse(await f.text()));
-          replaceHousehold(h);
-          onDone(`Loaded ${h.items.length} items`);
+          const raw = JSON.parse(await f.text());
+          const current = snapshot().household;
+          if (mode === "add" && current) {
+            const { household, added, updated } = mergeList(current, raw);
+            replaceHousehold(household);
+            onDone(`Added ${added} and updated ${updated}`);
+          } else {
+            const h = importHousehold(raw);
+            replaceHousehold(h);
+            onDone(`Loaded ${h.items.length} items`);
+          }
         } catch (err) {
           onDone(err instanceof ImportError ? err.message : "That file couldn't be read. Pick a .json list file.");
         }
@@ -354,10 +363,12 @@ function Welcome({ onDone }: { onDone: (msg: string) => void }) {
 }
 
 function BackupButtons({ onDone, onLoaded }: { onDone: (msg: string) => void; onLoaded: () => void }) {
-  const picker = useFilePicker((msg) => {
+  const finish = (msg: string) => {
     onDone(msg);
     onLoaded();
-  });
+  };
+  const picker = useFilePicker(finish);
+  const adder = useFilePicker(finish, "add");
   const [armed, setArmed] = useState(false);
 
   const backup = () => {
@@ -371,6 +382,10 @@ function BackupButtons({ onDone, onLoaded }: { onDone: (msg: string) => void; on
 
   return (
     <div className="menu">
+      <button className="btn" type="button" onClick={adder.open}>
+        Add items from a file <small>Updates matches, adds the rest</small>
+      </button>
+      {adder.input}
       <button className="btn" type="button" onClick={backup}>
         Save a backup <small>Downloads a file</small>
       </button>

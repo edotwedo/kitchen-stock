@@ -308,7 +308,8 @@ export function Settings({ h, onClose, backup, sharing, onPrint }: { h: Househol
         </section>
 
         <section className="set">
-          <h4>Backup</h4>
+          <h4>Lists and backup</h4>
+          <p className="hint">Add items from a list file (from a photo intake, or a backup) without losing what's here. Items with the same name in the same place are updated.</p>
           {backup}
         </section>
       </div>

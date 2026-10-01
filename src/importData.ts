@@ -14,7 +14,7 @@ const PROTOTYPE_LOCATIONS: Record<string, { label: string; kind: LocationKind }>
   pantry: { label: "Cupboards", kind: "pantry" },
 };
 
-function guessKind(key: string, label: string): LocationKind {
+export function guessKind(key: string, label = ""): LocationKind {
   const s = (key + " " + label).toLowerCase();
   if (/freez/.test(s)) return "freezer";
   if (/fridge|refrig/.test(s)) return "fridge";
