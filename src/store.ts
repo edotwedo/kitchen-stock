@@ -26,6 +26,7 @@ export interface AppState {
   cloud: boolean;
   status: Status;
   email: string | null;
+  userId: string | null;
   kitchens: Kitchen[];
   kitchenId: string | null;
   household: Household | null;
@@ -48,6 +49,7 @@ let app: AppState = {
   cloud: !!supabase,
   status: supabase ? "loading" : "ready",
   email: null,
+  userId: null,
   kitchens: [],
   kitchenId: null,
   household: supabase ? null : readJson(LOCAL_KEY),
@@ -259,7 +261,7 @@ function friendly(msg: string): string {
 
 async function loadKitchens(session: Session) {
   if (!supabase) return;
-  set({ email: session.user.email ?? null });
+  set({ email: session.user.email ?? null, userId: session.user.id });
   const remembered = readString(KITCHEN_KEY);
   const { data, error } = await supabase.from("members").select("role, households(id, name)").eq("user_id", session.user.id);
   if (error) {
@@ -412,12 +414,70 @@ async function loadKitchensThenOpen(session: Session, id: string) {
   await loadKitchens(session);
 }
 
-/** A one-time code someone else can use to join this kitchen. */
-export async function createInvite(): Promise<{ code?: string; error?: string }> {
+// ---------- people in a kitchen (database update 0002) ----------
+
+export interface Member {
+  userId: string;
+  email: string;
+  role: "owner" | "member";
+}
+
+const NEEDS_UPDATE = "Run database update 0002 in Supabase to manage who's in a kitchen.";
+
+/** The database doesn't have update 0002 yet (a missing function or column). */
+function missingUpdate(error: { code?: string; message?: string } | null): boolean {
+  return !!error && (error.code === "PGRST202" || error.code === "PGRST204" || error.code === "42703" || /could not find the (function|.*column)/i.test(error.message ?? ""));
+}
+
+/** A one-time code someone else can use to join this kitchen, as a member or as an owner. */
+export async function createInvite(role: Member["role"] = "member"): Promise<{ code?: string; error?: string }> {
   if (!supabase || !app.kitchenId) return { error: "Sign in first." };
-  const { data, error } = await supabase.from("invites").insert({ household_id: app.kitchenId }).select("code").single();
+  // Member invites leave the role out, so they still work before database update 0002.
+  const row: { household_id: string; role?: Member["role"] } = { household_id: app.kitchenId };
+  if (role === "owner") row.role = "owner";
+  const { data, error } = await supabase.from("invites").insert(row).select("code").single();
+  if (missingUpdate(error)) return { error: NEEDS_UPDATE };
   if (error || !data) return { error: "Only the kitchen's owner can make invite codes." };
   return { code: (data as { code: string }).code };
+}
+
+export async function listMembers(): Promise<{ members?: Member[]; error?: string }> {
+  if (!supabase || !app.kitchenId) return { error: "Sign in first." };
+  const { data, error } = await supabase.rpc("household_members", { h: app.kitchenId });
+  if (missingUpdate(error)) return { error: NEEDS_UPDATE };
+  if (error) return { error: "Couldn't load who's in this kitchen." };
+  return { members: (data as { user_id: string; email: string; role: Member["role"] }[]).map((r) => ({ userId: r.user_id, email: r.email, role: r.role })) };
+}
+
+export async function setMemberRole(userId: string, role: Member["role"]): Promise<string | null> {
+  if (!supabase || !app.kitchenId) return "Sign in first.";
+  const { error } = await supabase.rpc("set_member_role", { h: app.kitchenId, member: userId, new_role: role });
+  if (missingUpdate(error)) return NEEDS_UPDATE;
+  if (error) return /at least one owner/i.test(error.message) ? "A kitchen needs at least one owner." : "Only an owner can change that.";
+  if (userId === app.userId) await refreshKitchens();
+  return null;
+}
+
+/** Remove someone (owners only), or leave the kitchen yourself when no one is given. */
+export async function removeMember(userId?: string): Promise<string | null> {
+  if (!supabase || !app.kitchenId) return "Sign in first.";
+  const { error } = await supabase.rpc("leave_household", { h: app.kitchenId, member: userId ?? null });
+  if (missingUpdate(error)) return NEEDS_UPDATE;
+  if (error) return /at least one owner/i.test(error.message) ? "Make someone else an owner before you leave." : "Couldn't do that. Try again.";
+  if (!userId || userId === app.userId) {
+    try {
+      localStorage.removeItem(KITCHEN_KEY);
+    } catch {
+      /* not essential */
+    }
+    await refreshKitchens();
+  }
+  return null;
+}
+
+async function refreshKitchens() {
+  const session = supabase ? (await supabase.auth.getSession()).data.session : null;
+  if (session) await loadKitchens(session);
 }
 
 // ---------- start up ----------
@@ -437,7 +497,7 @@ if (supabase) {
   supabase.auth.onAuthStateChange((event, session) => {
     if (!session) {
       if (channel) void supabase!.removeChannel(channel);
-      set({ status: "signed-out", email: null, kitchens: [], kitchenId: null, household: null });
+      set({ status: "signed-out", email: null, userId: null, kitchens: [], kitchenId: null, household: null });
       return;
     }
     // Token refreshes, and the "signed in" event some browsers repeat when the tab

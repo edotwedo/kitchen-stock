@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createInvite, createKitchen, deviceList, joinKitchen, openKitchen, sendCode, signOut, verifyCode, type AppState } from "./store";
+import { useEffect, useState } from "react";
+import { createInvite, createKitchen, deviceList, joinKitchen, listMembers, openKitchen, removeMember, sendCode, setMemberRole, signOut, verifyCode, type AppState, type Member } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household } from "./types";
 
 const EMPTY_KITCHEN: Household = {
@@ -126,54 +126,64 @@ export function NoKitchen({ email }: { email: string | null }) {
   );
 }
 
-/** Settings section: who's signed in, inviting people, switching kitchens. */
+/** Settings section: who's in this kitchen, inviting people (as members or owners), switching kitchens. */
 export function Sharing({ app }: { app: AppState }) {
-  const [invite, setInvite] = useState("");
-  const [copied, setCopied] = useState(false);
-  const { busy, error, run } = useBusy();
   const current = app.kitchens.find((k) => k.id === app.kitchenId);
+  const owner = current?.role === "owner";
   const others = app.kitchens.filter((k) => k.id !== app.kitchenId);
+  const [members, setMembers] = useState<Member[] | null>(null);
+  const [note, setNote] = useState("");
+  const { busy, error, run } = useBusy();
+
+  const load = () =>
+    void listMembers().then((r) => {
+      setMembers(r.members ?? null);
+      setNote(r.error ?? "");
+    });
+  useEffect(load, [app.kitchenId]);
+
+  const act = (job: () => Promise<string | null>) =>
+    void run(async () => {
+      const err = await job();
+      if (!err) load();
+      return err;
+    });
 
   return (
     <>
       <p className="hint">
         Signed in as <strong>{app.email}</strong>
-        {current && <> as this kitchen's {current.role}</>}.
+        {current && <>, this kitchen's {current.role}</>}.
       </p>
-      {current?.role === "owner" && (
-        <div className="card">
-          <p className="hint small">Send a code to anyone who should share this list. Each code works once, for 7 days.</p>
-          {invite ? (
-            <div className="line">
-              <input readOnly value={invite} aria-label="Invite code" className="code" onFocus={(e) => e.target.select()} />
-              <button
-                className="btn"
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(invite).then(() => setCopied(true));
-                }}
-              >
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-          ) : (
-            <button
-              className="btn"
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  const r = await createInvite();
-                  if (r.code) setInvite(r.code);
-                  return r.error ?? null;
-                })
-              }
-            >
-              Make an invite code
-            </button>
-          )}
+
+      {members && (
+        <div className="people">
+          {members.map((m) => {
+            const me = m.userId === app.userId;
+            return (
+              <div className="person" key={m.userId}>
+                <span className="who">
+                  {m.email}
+                  {me && <small> (you)</small>}
+                </span>
+                <span className={"role " + m.role}>{m.role}</span>
+                {owner && !me && (
+                  <span className="person-actions">
+                    <button className="linkbtn" type="button" disabled={busy} onClick={() => act(() => setMemberRole(m.userId, m.role === "owner" ? "member" : "owner"))}>
+                      {m.role === "owner" ? "Make member" : "Make owner"}
+                    </button>
+                    <TwoTap label="Remove" confirm="Tap again" disabled={busy} onConfirm={() => act(() => removeMember(m.userId))} />
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
+      {note && <p className="hint small">{note}</p>}
+
+      {owner && <InviteMaker />}
+
       {others.length > 0 && (
         <div className="menu">
           <span className="hint small">Your other kitchens</span>
@@ -185,9 +195,90 @@ export function Sharing({ app }: { app: AppState }) {
         </div>
       )}
       {error && <p className="formerror">{error}</p>}
-      <button className="btn" type="button" onClick={() => void signOut()}>
-        Sign out
-      </button>
+      <div className="menu">
+        {current && members && members.length > 1 && (
+          <TwoTap label="Leave this kitchen" confirm="Tap again to leave" className="btn" disabled={busy} onConfirm={() => act(() => removeMember())} />
+        )}
+        <button className="btn" type="button" onClick={() => void signOut()}>
+          Sign out
+        </button>
+      </div>
     </>
+  );
+}
+
+/** Make a one-time invite code: as a member (shares the list) or an owner (hands the kitchen over). */
+function InviteMaker() {
+  const [invite, setInvite] = useState<{ code: string; role: Member["role"] } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const { busy, error, run } = useBusy();
+  const make = (role: Member["role"]) =>
+    void run(async () => {
+      const r = await createInvite(role);
+      if (r.code) {
+        setInvite({ code: r.code, role });
+        setCopied(false);
+      }
+      return r.error ?? null;
+    });
+
+  return (
+    <div className="card">
+      <p className="hint small">
+        Each code works once, for 7 days. A <strong>member</strong> shares and edits the list. An <strong>owner</strong> can also invite people and change who's in it: use that to hand a kitchen over to a client, then stay on or leave.
+      </p>
+      {invite ? (
+        <>
+          <div className="line">
+            <input readOnly value={invite.code} aria-label="Invite code" className="code" onFocus={(e) => e.target.select()} />
+            <button
+              className="btn"
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(invite.code).then(() => setCopied(true));
+              }}
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <p className="hint small">
+            This code joins as {invite.role === "owner" ? "an owner" : "a member"}.{" "}
+            <button className="linkbtn" type="button" onClick={() => setInvite(null)}>
+              Make another
+            </button>
+          </p>
+        </>
+      ) : (
+        <div className="line">
+          <button className="btn" type="button" disabled={busy} onClick={() => make("member")}>
+            Invite a member
+          </button>
+          <button className="btn" type="button" disabled={busy} onClick={() => make("owner")}>
+            Invite an owner
+          </button>
+        </div>
+      )}
+      {error && <p className="formerror">{error}</p>}
+    </div>
+  );
+}
+
+/** A button that asks for a second tap before doing something hard to undo. */
+function TwoTap({ label, confirm, onConfirm, disabled, className }: { label: string; confirm: string; onConfirm: () => void; disabled?: boolean; className?: string }) {
+  const [armed, setArmed] = useState(false);
+  return (
+    <button
+      className={(className ?? "linkbtn danger") + (armed ? " armed" : "")}
+      type="button"
+      disabled={disabled}
+      onBlur={() => setArmed(false)}
+      onClick={() => {
+        if (!armed) return setArmed(true);
+        setArmed(false);
+        onConfirm();
+      }}
+    >
+      {armed ? confirm : label}
+    </button>
   );
 }

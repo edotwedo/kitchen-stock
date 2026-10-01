@@ -426,3 +426,16 @@ html.printing #root { display: none; }
   .paper tr { break-inside: avoid; }
   .paper thead { display: table-header-group; }
 }
+
+/* ---------- people in a kitchen ---------- */
+.people { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.person { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
+.person + .person { border-top: 1px solid var(--line); }
+.person .who { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+.person .who small { color: var(--muted); font-weight: 400; }
+.role { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--sunk); text-transform: capitalize; }
+.role.owner { background: var(--brand); color: var(--brand-ink); }
+.person-actions { display: flex; gap: 14px; align-items: center; }
+.linkbtn.danger { color: var(--out); }
+.linkbtn.danger.armed { font-weight: 700; }
+.btn.armed { border-color: var(--out); color: var(--out); }

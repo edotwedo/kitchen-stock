@@ -12,7 +12,10 @@ const db = vi.hoisted(() => {
     household: { id: "hh", name: "Test kitchen", settings: { locations: [{ key: "fridge", label: "Fridge", kind: "fridge" }] } },
     items: [] as Record<string, unknown>[],
     session: null as null | { user: { id: string; email: string } },
+    updated: false, // has database update 0002 been run?
+    members: [] as { user_id: string; email: string; role: string }[],
   };
+  const missing = (what: string) => ({ error: { code: "PGRST202", message: `Could not find the function ${what}` }, data: null, status: 404 });
   const answer = (table: string, op: string, payload: unknown) => {
     state.sent.push({ table, op, payload });
     if (state.mode === "offline") return Promise.resolve({ error: { message: "TypeError: Failed to fetch" }, status: 0, data: null });
@@ -31,12 +34,27 @@ const db = vi.hoisted(() => {
       }),
     }),
     upsert: (rows: unknown) => answer(table, "upsert", rows),
+    insert: (row: Record<string, unknown>) => ({
+      select: () => ({
+        single: () => {
+          state.sent.push({ table, op: "insert", payload: row });
+          if (!state.updated && "role" in row) return Promise.resolve({ error: { code: "PGRST204", message: "Could not find the 'role' column of 'invites'" }, data: null });
+          return Promise.resolve({ error: null, data: { code: "a1b2c3d4e5f6" } });
+        },
+      }),
+    }),
     update: (v: unknown) => ({ eq: () => answer(table, "update", v) }),
     delete: () => ({ eq: () => ({ in: (_c: string, ids: unknown) => answer(table, "delete", ids) }) }),
   });
   const channel = { on: () => channel, subscribe: () => channel };
   const client = {
     from,
+    rpc: (fn: string, args: Record<string, unknown>) => {
+      state.sent.push({ table: "rpc", op: fn, payload: args });
+      if (!state.updated) return Promise.resolve(missing(fn));
+      if (fn === "household_members") return Promise.resolve({ error: null, data: state.members });
+      return Promise.resolve({ error: null, data: null });
+    },
     channel: () => channel,
     removeChannel: () => Promise.resolve(),
     auth: {
@@ -66,6 +84,8 @@ beforeEach(() => {
   db.state.sent = [];
   db.state.items = [row("milk"), row("eggs")];
   db.state.session = null;
+  db.state.updated = false;
+  db.state.members = [];
   vi.useFakeTimers();
 });
 afterEach(() => vi.useRealTimers());
@@ -154,5 +174,27 @@ describe("syncing the shared list", () => {
     expect(s.snapshot().status).toBe("ready");
     expect(s.snapshot().household?.name).toBe("Test kitchen");
     expect(s.snapshot().kitchens.map((k) => k.name)).toEqual(["Test kitchen"]);
+  });
+
+  it("explains what to run when database update 0002 is missing, without breaking member invites", async () => {
+    const s = await freshStore();
+    await s.openKitchen("hh");
+    expect(await s.listMembers()).toEqual({ error: "Run database update 0002 in Supabase to manage who's in a kitchen." });
+    expect((await s.createInvite("owner")).error).toContain("database update 0002");
+    expect(await s.createInvite("member")).toEqual({ code: "a1b2c3d4e5f6" });
+    expect(db.state.sent.filter((x) => x.op === "insert").map((x) => x.payload)).toEqual([{ household_id: "hh", role: "owner" }, { household_id: "hh" }]);
+  });
+
+  it("lists members and hands a kitchen over once the update is in", async () => {
+    db.state.updated = true;
+    db.state.members = [
+      { user_id: "u1", email: "organizer@example.com", role: "owner" },
+      { user_id: "u2", email: "client@example.com", role: "member" },
+    ];
+    const s = await freshStore();
+    await s.openKitchen("hh");
+    expect((await s.listMembers()).members?.map((m) => `${m.email}:${m.role}`)).toEqual(["organizer@example.com:owner", "client@example.com:member"]);
+    expect(await s.setMemberRole("u2", "owner")).toBe(null);
+    expect(db.state.sent.at(-1)).toEqual({ table: "rpc", op: "set_member_role", payload: { h: "hh", member: "u2", new_role: "owner" } });
   });
 });
