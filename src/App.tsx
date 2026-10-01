@@ -92,6 +92,15 @@ export default function App() {
     clearProblem();
   }, [app.problem, toast]);
 
+  // The landing page's "Try the sample kitchen" opens /?demo. Only for visitors with
+  // no kitchen of their own, and only once the sign-in check has settled.
+  useEffect(() => {
+    if (!new URLSearchParams(location.search).has("demo")) return;
+    if (app.status === "loading") return;
+    history.replaceState(null, "", location.pathname);
+    if (app.status === "signed-out" || (app.status === "ready" && !h)) startDemo();
+  }, [app.status, h]);
+
   if (app.status === "loading" && !h)
     return (
       <div className="wrap">

@@ -31,6 +31,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
         navigateFallback: "/index.html",
+        // The landing page is its own page, not the app.
+        navigateFallbackDenylist: [/^\/about/],
         // Shows reminder notifications and opens the right list when one is tapped.
         importScripts: ["push-sw.js"],
         runtimeCaching: [
