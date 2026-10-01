@@ -8,6 +8,7 @@ export interface Location {
   key: string;
   label: string;
   kind: LocationKind;
+  spots?: string[]; // the order to read its spots in ("Top shelf" before "Crisper"), if someone set one
 }
 
 export const WRAPS = ["regular", "vacuum", "chamber"] as const;

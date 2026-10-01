@@ -1,4 +1,5 @@
 import type { Household, LocationKind, Person, Rule, Wrap } from "./types";
+import { spotsIn } from "./logic";
 
 /**
  * Household settings changes. Each takes a household and returns a new one, so
@@ -104,6 +105,16 @@ export const moveLocation = (key: string, by: -1 | 1) => (h: Household): Househo
   const locations = [...h.locations];
   [locations[from], locations[to]] = [locations[to], locations[from]];
   return { ...h, locations };
+};
+
+/** Move a spot earlier or later in its place's reading order. */
+export const moveSpot = (key: string, spot: string, by: -1 | 1) => (h: Household): Household => {
+  const order = spotsIn(h, key);
+  const from = order.findIndex((s) => s.toLowerCase() === spot.toLowerCase());
+  const to = from + by;
+  if (from < 0 || to < 0 || to >= order.length) return h;
+  [order[from], order[to]] = [order[to], order[from]];
+  return { ...h, locations: h.locations.map((l) => (l.key === key ? { ...l, spots: order } : l)) };
 };
 
 // ---------- freezer clock and name ----------

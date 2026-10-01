@@ -39,3 +39,25 @@ describe("shelf spots", () => {
     expect(back.items.find((i) => i.name === "Milk")!.spot).toBe("Door");
   });
 });
+
+describe("spot order you choose", () => {
+  it("reads a place in the chosen order, new spots after it A to Z", async () => {
+    const { moveSpot } = await import("../src/household");
+    expect(spotsIn(h, "fridge")).toEqual(["Crisper", "Door", "Top shelf"]);
+    // Walk the fridge top to bottom: move Top shelf up twice.
+    let k = moveSpot("fridge", "Top shelf", -1)(h);
+    k = moveSpot("fridge", "top shelf", -1)(k);
+    expect(spotsIn(k, "fridge")).toEqual(["Top shelf", "Crisper", "Door"]);
+    expect(k.locations.find((l) => l.key === "fridge")!.spots).toEqual(["Top shelf", "Crisper", "Door"]);
+    // Can't move past the ends.
+    expect(moveSpot("fridge", "Top shelf", -1)(k)).toBe(k);
+
+    const list = k.items.filter((i) => i.loc === "fridge").sort(bySpot(byLevelThenName, k));
+    expect([...new Set(list.map((i) => i.spot ?? ""))]).toEqual(["Top shelf", "Crisper", "Door", ""]);
+
+    // A spot added later goes after the chosen ones; the order survives a backup file.
+    const more = { ...k, items: [...k.items, { ...k.items[0], id: "z", name: "Butter", loc: "fridge", spot: "Butter tray" }] };
+    expect(spotsIn(more, "fridge")).toEqual(["Top shelf", "Crisper", "Door", "Butter tray"]);
+    expect(importHousehold(JSON.parse(JSON.stringify(k))).locations.find((l) => l.key === "fridge")!.spots).toEqual(["Top shelf", "Crisper", "Door"]);
+  });
+});

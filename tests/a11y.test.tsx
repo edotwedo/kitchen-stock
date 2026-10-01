@@ -31,6 +31,11 @@ describe("accessibility", () => {
     await esc();
     await click(document.querySelector('[aria-label="Kitchen settings"]'));
     expect(await audit()).toEqual([]);
+    // Places: the fridge's spots can be put in walking order.
+    const spots = () => [...document.querySelectorAll('[aria-label="Order of spots in Fridge"] .spotline > span')].map((e) => e.textContent);
+    expect(spots()).toEqual(["Crisper", "Door", "Top shelf"]);
+    await click(document.querySelector('[aria-label="Move Top shelf up"]'));
+    expect(spots()).toEqual(["Crisper", "Top shelf", "Door"]);
     await esc();
     await click(document.querySelector(".cookbar .btn"));
     expect(await audit()).toEqual([]);

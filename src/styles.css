@@ -471,3 +471,8 @@ html.printing #root { display: none; }
 .sheet .suggest .chip { color: var(--ink); border-color: var(--muted); }
 .sheet .dupe { color: var(--ink); font-weight: 500; display: flex; flex-direction: row; text-align: left; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
   padding: 10px 12px; border-radius: var(--r-md); background: var(--sunk); border-left: 4px solid var(--low); font-size: 14px; }
+
+/* ---------- spot order (Settings, Places) ---------- */
+.spotorder { display: flex; flex-direction: column; gap: 4px; margin: -2px 0 10px 14px; padding-left: 12px; border-left: 2px solid var(--line); }
+.spotline { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.spotline .updown button { height: 30px; }

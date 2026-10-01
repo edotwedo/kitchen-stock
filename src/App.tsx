@@ -169,7 +169,7 @@ export default function App() {
   const inPlace = !searching && (current.byLocation || current.key.startsWith("loc:"));
   for (const g of groups) {
     const order = current.sort && !searching ? current.sort : byLevelThenName;
-    g.list.sort(inPlace ? bySpot(order) : order);
+    g.list.sort(inPlace ? bySpot(order, h) : order);
   }
   const shown = groups.length > 1 ? groups.filter((g) => g.list.length) : groups;
 
