@@ -369,7 +369,8 @@ input.code { letter-spacing: 3px; font-variant-numeric: tabular-nums; font-size:
 .daydot.d2 { color: #1b1b1b; }
 /* Sunday's black dot needs an edge to show on a dark screen. */
 .daydot.d0 { box-shadow: 0 0 0 1px var(--line); }
-.withdot { display: inline-flex; align-items: center; gap: 8px; min-height: 21px; }
+.withdot { display: inline-flex; align-items: center; gap: 8px; height: 18px; }
+.withdot .daydot { height: 18px; width: 28px; font-size: 9px; }
 
 /* ---------- sync status: only shown while changes are waiting ---------- */
 .titlebar .title { margin-right: auto; }
