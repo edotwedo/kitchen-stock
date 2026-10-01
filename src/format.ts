@@ -36,3 +36,16 @@ export function dayOf(iso: string): { n: number; short: string; long: string } |
   const n = d.getDay();
   return { n, short: DAYS[n].slice(0, 3).toUpperCase(), long: `Frozen ${DAYS[n]}, ${fmtDate(iso, true)}` };
 }
+
+/** "today", "yesterday", "5 days ago", "3 weeks ago", for when something was last done. */
+export function agoText(iso: string, today: Date): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const then = new Date(y, m - 1, d);
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const days = Math.round((now.getTime() - then.getTime()) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
+  return `${Math.round(days / 30)} months ago`;
+}

@@ -8,6 +8,7 @@ export interface Location {
   key: string;
   label: string;
   kind: LocationKind;
+  counted?: string; // YYYY-MM-DD of the last full walk-through count
   spots?: string[]; // the order to read its spots in ("Top shelf" before "Crisper"), if someone set one
 }
 

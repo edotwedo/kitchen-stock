@@ -43,5 +43,34 @@ describe("walk-through count", () => {
     expect(toast.textContent).toContain("2 items changed");
     await click(toast.querySelector("button"));
     expect(level("Baby spinach")).toBe(start.items.find((i) => i.name === "Baby spinach")!.level);
+
+    // Stopping early doesn't count as a full count; going all the way through does.
+    expect(bar!.textContent).toContain("Go spot by spot");
+    await click(bar!.querySelector("button"));
+    for (let n = 0; n < 9; n++) await click(document.querySelector('.walk-levels [aria-pressed="true"]'));
+    expect(document.querySelector(".walk-done")!.textContent).toContain("Nothing changed");
+    await click([...document.querySelectorAll(".walk .btn")].find((b) => b.textContent === "Done"));
+    const bar2 = [...document.querySelectorAll(".cookbar")].find((b) => b.textContent!.includes("Counting the fridge"));
+    expect(bar2!.textContent).toContain("Last counted today.");
+  });
+});
+
+describe("last counted", () => {
+  it("words the gap plainly", async () => {
+    const { agoText } = await import("../src/format");
+    const today = new Date("2026-10-20T09:00:00");
+    expect(agoText("2026-10-20", today)).toBe("today");
+    expect(agoText("2026-10-19", today)).toBe("yesterday");
+    expect(agoText("2026-10-15", today)).toBe("5 days ago");
+    expect(agoText("2026-09-29", today)).toBe("3 weeks ago");
+    expect(agoText("2026-06-20", today)).toBe("4 months ago");
+  });
+
+  it("is saved only when a count goes all the way through, and survives a backup file", async () => {
+    const { markCounted } = await import("../src/household");
+    const { importHousehold } = await import("../src/importData");
+    const h = markCounted("freezer", "2026-10-01")(sampleKitchen());
+    expect(h.locations.find((l) => l.key === "freezer")!.counted).toBe("2026-10-01");
+    expect(importHousehold(JSON.parse(JSON.stringify(h))).locations.find((l) => l.key === "freezer")!.counted).toBe("2026-10-01");
   });
 });

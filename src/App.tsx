@@ -6,12 +6,13 @@ import { Reminders } from "./Reminders";
 import { EditSheet, type SheetTarget } from "./EditSheet";
 import { Settings } from "./Settings";
 import { DayDot } from "./DayDot";
-import { dayOf, dueTag } from "./format";
+import { agoText, dayOf, dueTag } from "./format";
+import { markCounted } from "./household";
 import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, bySpot, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { mergeList } from "./merge";
-import { clearProblem, endDemo, exportJson, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, useApp } from "./store";
+import { clearProblem, endDemo, exportJson, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, updateHousehold, useApp } from "./store";
 import { StoreRun } from "./StoreRun";
 import { Walkthrough } from "./Walkthrough";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
@@ -180,6 +181,7 @@ export default function App() {
 
   const due = items.filter((i) => isReminderDue(i, today)).sort((a, b) => a.remindOn.localeCompare(b.remindOn));
   const addLoc = current.key.startsWith("loc:") ? current.key.slice(4) : undefined;
+  const countedOn = h.locations.find((l) => l.key === addLoc)?.counted;
 
   return (
     <div className="wrap">
@@ -251,7 +253,7 @@ export default function App() {
           <div className="cookbar">
             <p>
               <strong>Counting the {current.label.toLowerCase()}?</strong>
-              Go spot by spot with big buttons.
+              {countedOn ? `Last counted ${agoText(countedOn, today)}.` : "Go spot by spot with big buttons."}
             </p>
             <button className="btn" type="button" onClick={() => setCounting(current.key.slice(4))}>
               Count
@@ -309,7 +311,8 @@ export default function App() {
         <Walkthrough
           h={h}
           loc={counting}
-          onClose={(changed) => {
+          onClose={(changed, finished) => {
+            if (finished) updateHousehold(markCounted(counting, toIso(new Date())));
             setCounting(null);
             if (changed.length) toast(`Counted. ${changed.length} ${changed.length === 1 ? "item" : "items"} changed`, () => restoreItems(changed));
           }}

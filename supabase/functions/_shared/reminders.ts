@@ -6,7 +6,8 @@
  * - One morning notification, not one per item: food due within 3 days (or past due),
  *   frozen food reaching the end of its quality clock, and remind-on dates for today.
  * - The Use first list already shows a 7-day window without interrupting anyone.
- * - Saturday morning: the shopping list (everything low or out).
+ * - Saturday morning: the shopping list (everything low or out), plus a one-line nudge for
+ *   any place that was counted before but not in the last two weeks.
  */
 
 export interface ReminderItem {
@@ -22,7 +23,7 @@ export interface ReminderItem {
 export interface ReminderKitchen {
   name: string;
   settings: {
-    locations?: { key: string; label: string; kind: string }[];
+    locations?: { key: string; label: string; kind: string; counted?: string }[];
     freezerDays?: Partial<Record<string, number>>;
   };
 }
@@ -36,6 +37,7 @@ export interface Notice {
 }
 
 export const WARN_DAYS = 3;
+export const RECOUNT_DAYS = 14;
 const FREEZER_DEFAULTS: Record<string, number> = { regular: 90, vacuum: 365, chamber: 730 };
 
 function dayNumber(iso: string): number {
@@ -99,8 +101,12 @@ export function morningNotice(k: ReminderKitchen, items: ReminderItem[], today: 
 }
 
 /** Saturday's shopping list notification, or null when nothing is low or out. */
-export function shoppingNotice(k: ReminderKitchen, items: ReminderItem[]): Notice | null {
+export function shoppingNotice(k: ReminderKitchen, items: ReminderItem[], today?: string): Notice | null {
   const need = items.filter((i) => i.level === "low" || i.level === "out").map((i) => i.name);
   if (!need.length) return null;
-  return { title: `${k.name}: shopping list (${need.length})`, body: list(need, 8), tab: "shop", count: need.length };
+  // Places that have been counted before, but not lately (never-counted places aren't nagged about).
+  const stale = today ? (k.settings.locations ?? []).filter((l) => l.counted && dayNumber(today) - dayNumber(l.counted) >= RECOUNT_DAYS).map((l) => l.label) : [];
+  const body = list(need, 8) + (stale.length ? `
+Not counted in a while: ${list(stale)}` : "");
+  return { title: `${k.name}: shopping list (${need.length})`, body, tab: "shop", count: need.length };
 }

@@ -71,3 +71,21 @@ describe.skipIf(!existsSync(SEED))("on the real list", () => {
     expect(say("2026-12-23")).not.toContain("Freezer");
   });
 });
+
+describe("recount nudge", () => {
+  const items: ReminderItem[] = [{ name: "Milk", loc: "fridge", level: "low", use_by: null, remind_on: null, frozen_on: null, wrap: "regular" }];
+  const k = (counted: Record<string, string>): ReminderKitchen => ({
+    name: "Home",
+    settings: { locations: [{ key: "fridge", label: "Fridge", kind: "fridge", counted: counted.fridge }, { key: "freezer", label: "Chest freezer", kind: "freezer", counted: counted.freezer }] },
+  });
+
+  it("adds one line on Saturday for places counted before but not in two weeks", () => {
+    const body = shoppingNotice(k({ fridge: "2026-10-01", freezer: "2026-09-10" }), items, "2026-10-10")!.body;
+    expect(body).toBe("Milk\nNot counted in a while: Chest freezer");
+    expect(shoppingNotice(k({ fridge: "2026-09-26" }), items, "2026-10-10")!.body).toContain("Not counted in a while: Fridge");
+  });
+
+  it("never nags about places that were never counted", () => {
+    expect(shoppingNotice(k({}), items, "2026-10-10")!.body).toBe("Milk");
+  });
+});

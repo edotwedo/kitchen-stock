@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     const data = await kitchen(s.household_id);
     if (!data) continue;
-    const notice: Notice | null = morning ? morningNotice(data.k, data.items, today) : shoppingNotice(data.k, data.items);
+    const notice: Notice | null = morning ? morningNotice(data.k, data.items, today) : shoppingNotice(data.k, data.items, today);
     const stamp = morning ? { last_morning: today } : { last_shopping: today };
 
     if (notice) {

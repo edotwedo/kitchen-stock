@@ -107,6 +107,12 @@ export const moveLocation = (key: string, by: -1 | 1) => (h: Household): Househo
   return { ...h, locations };
 };
 
+/** Remember the day a place was counted all the way through. */
+export const markCounted = (key: string, day: string) => (h: Household): Household => ({
+  ...h,
+  locations: h.locations.map((l) => (l.key === key ? { ...l, counted: day } : l)),
+});
+
 /** Move a spot earlier or later in its place's reading order. */
 export const moveSpot = (key: string, spot: string, by: -1 | 1) => (h: Household): Household => {
   const order = spotsIn(h, key);

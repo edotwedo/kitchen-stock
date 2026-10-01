@@ -10,7 +10,7 @@ const LABEL: Record<Level, string> = { full: "Full", half: "Half", low: "Low", o
  * Count one place item by item, in walking order (spot by spot), with big buttons.
  * Each tap saves right away, so nothing is lost if the phone locks halfway through.
  */
-export function Walkthrough({ h, loc, onClose }: { h: Household; loc: string; onClose: (changed: Item[]) => void }) {
+export function Walkthrough({ h, loc, onClose }: { h: Household; loc: string; onClose: (changed: Item[], finished: boolean) => void }) {
   const place = h.locations.find((l) => l.key === loc);
   // The order is fixed when the count starts, so items don't jump around as levels change.
   const [order] = useState(() => h.items.filter((i) => i.loc === loc).sort(bySpot(byName, h)).map((i) => i.id));
@@ -18,7 +18,7 @@ export function Walkthrough({ h, loc, onClose }: { h: Household; loc: string; on
   const before = useRef(new Map<string, Item>());
   // What each changed item looked like before the count (for one Undo), leaving out any set back to where it was.
   const changedFrom = () => [...before.current.values()].filter((b) => h.items.find((i) => i.id === b.id)?.level !== b.level);
-  const finish = () => onClose(changedFrom());
+  const finish = () => onClose(changedFrom(), at >= order.length);
 
   const item = h.items.find((i) => i.id === order[at]);
   const done = at >= order.length;

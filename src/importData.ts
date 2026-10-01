@@ -78,7 +78,8 @@ export function importHousehold(raw: unknown): Household {
         const label = str(l.label) || str(l.key);
         const kind = ["freezer", "fridge", "pantry", "other"].includes(str(l.kind)) ? (l.kind as LocationKind) : guessKind(str(l.key), label);
         const spots = Array.isArray(l.spots) ? l.spots.map(str).map((s: string) => s.trim()).filter(Boolean) : [];
-        return { key: str(l.key), label, kind, ...(spots.length ? { spots } : {}) };
+        const counted = date(l.counted);
+        return { key: str(l.key), label, kind, ...(spots.length ? { spots } : {}), ...(counted ? { counted } : {}) };
       })
     : [];
   if (!locations.length) {
