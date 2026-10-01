@@ -3,7 +3,8 @@ import { suggestFlags } from "./flagLibrary";
 import { DayDot } from "./DayDot";
 import { dayOf, fmtDate } from "./format";
 import { addDays, toIso } from "./logic";
-import { deleteItem, restoreItem, saveItem } from "./store";
+import { alreadyHave, pastMatches } from "./quickAdd";
+import { deleteItem, restockItems, restoreItem, saveItem } from "./store";
 import { LEVELS, WRAP_LABELS, WRAPS, type Household, type Item, type Level, type Wrap } from "./types";
 
 export type SheetTarget = { item: Item | null; loc?: string };
@@ -53,6 +54,27 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
     onClose();
   };
 
+  // Adding something new: offer what's been logged before, and catch duplicates.
+  const past = it ? [] : pastMatches(h, name);
+  const dupe = it ? null : alreadyHave(h, name, loc);
+  const placeOf = (i: Item) => h.locations.find((l) => l.key === i.loc)?.label ?? "";
+  const copyFrom = (p: Item) => {
+    setName(p.name);
+    setLoc(p.loc);
+    setQty(p.qty);
+    setWrap(p.wrap);
+    setNote(p.note);
+    setFlags(p.flags);
+    setLevel("full");
+    nameRef.current?.focus();
+  };
+  const restockDupe = () => {
+    if (!dupe) return;
+    restockItems([dupe.id]);
+    onSaved("Restocked " + dupe.name, () => restoreItem(dupe));
+    onClose();
+  };
+
   const changed = it?.updated ? new Date(it.updated) : null;
   // Flags this item probably has, from its name and note. Shown as dashed chips to confirm.
   const maybe = suggestFlags({ name, note, flags }, h.flags);
@@ -68,6 +90,37 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
               Item
               <input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off" placeholder="e.g. Ground beef" />
             </label>
+            {past.length > 0 && (
+              <div className="field full">
+                <span id="past-label" className="hint small">Had it before? Tap to copy the details.</span>
+                <div className="suggest" role="group" aria-labelledby="past-label">
+                  {past.map((p) => (
+                    <button key={p.id} type="button" className="chip" onClick={() => copyFrom(p)}>
+                      {p.name}
+                      <small>{placeOf(p)}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {dupe && (
+              <div className="field full dupe" role="status">
+                {dupe.level === "full" ? (
+                  <span>
+                    <strong>{dupe.name}</strong> is already in {placeOf(dupe)}, and full. Adding it again makes a second entry.
+                  </span>
+                ) : (
+                  <>
+                    <span>
+                      <strong>{dupe.name}</strong> is already in {placeOf(dupe)}, marked {dupe.level}.
+                    </span>
+                    <button type="button" className="btn small" onClick={restockDupe}>
+                      Mark it full instead
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             <label className="field">
               Where
               <select value={loc} onChange={(e) => setLoc(e.target.value)}>
