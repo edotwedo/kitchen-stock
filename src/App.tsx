@@ -129,6 +129,11 @@ export default function App() {
       <header className="head">
         <div className="titlebar">
           <h1 className="title">{app.cloud ? h.name : "Kitchen Stock"}</h1>
+          {app.cloud && app.pending > 0 && (
+            <span className={"sync" + (app.offline ? " off" : "")} role="status">
+              {app.offline ? `Offline, ${app.pending} to sync` : "Saving…"}
+            </span>
+          )}
           <button className="iconbtn" type="button" aria-label="Kitchen settings" onClick={() => setMenu(true)}>
             <MenuIcon />
           </button>

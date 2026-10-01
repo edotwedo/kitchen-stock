@@ -370,3 +370,8 @@ input.code { letter-spacing: 3px; font-variant-numeric: tabular-nums; font-size:
 /* Sunday's black dot needs an edge to show on a dark screen. */
 .daydot.d0 { box-shadow: 0 0 0 1px var(--line); }
 .withdot { display: inline-flex; align-items: center; gap: 8px; min-height: 21px; }
+
+/* ---------- sync status: only shown while changes are waiting ---------- */
+.titlebar .title { margin-right: auto; }
+.sync { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.sync.off { color: var(--low-ink); background: color-mix(in srgb, var(--low) 16%, transparent); padding: 4px 10px; border-radius: 999px; }

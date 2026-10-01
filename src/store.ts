@@ -2,6 +2,7 @@ import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { useSyncExternalStore } from "react";
 import { diff, fromRow, householdFrom, settingsOf, supabase, toRow, type HouseholdRow, type ItemRow } from "./cloud";
 import { importHousehold } from "./importData";
+import { emptyOutbox, isEmpty, isOffline, record, settle, size, type Outbox } from "./outbox";
 import type { Household, Item } from "./types";
 
 /**
@@ -30,11 +31,16 @@ export interface AppState {
   household: Household | null;
   /** Something went wrong talking to the database; shown once, then cleared. */
   problem: string | null;
+  /** Changes on this phone that haven't reached the shared list yet. */
+  pending: number;
+  /** The last send failed for lack of signal. */
+  offline: boolean;
 }
 
 const LOCAL_KEY = "ks-household-v1";
 const KITCHEN_KEY = "ks-kitchen";
 const cacheKey = (id: string) => "ks-cache-v1-" + id;
+const outboxKey = (id: string) => "ks-outbox-v1-" + id;
 
 const listeners = new Set<() => void>();
 let app: AppState = {
@@ -45,8 +51,13 @@ let app: AppState = {
   kitchenId: null,
   household: supabase ? null : readJson(LOCAL_KEY),
   problem: null,
+  pending: 0,
+  offline: false,
 };
 let channel: RealtimeChannel | null = null;
+let outbox: Outbox = emptyOutbox();
+let flushing = false;
+let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
 function readJson(k: string): Household | null {
   try {
@@ -89,32 +100,94 @@ export function useHousehold(): Household | null {
   return useSyncExternalStore(subscribe, () => app.household);
 }
 
+/** The current state, outside React (tests, debugging). */
+export function snapshot(): AppState {
+  return app;
+}
+
 export function clearProblem() {
   set({ problem: null });
 }
 
 // ---------- changes ----------
 
-/** Show a change now, then save it. */
+/** Show a change now, queue it, and send it shortly (quick taps go out together). */
 function apply(next: Household) {
   const before = app.household;
   set({ household: next });
-  if (supabase && app.kitchenId && before) void push(app.kitchenId, before, next);
+  if (!supabase || !app.kitchenId || !before) return;
+  const { settingsChanged, upserts, deletes } = diff(before, next);
+  const id = app.kitchenId;
+  setOutbox(
+    record(outbox, {
+      settings: settingsChanged ? { name: next.name, settings: settingsOf(next) } : undefined,
+      upserts: upserts.map((i) => toRow(id, i)),
+      deletes,
+    }),
+  );
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(() => void flush(), 400);
 }
 
-async function push(kitchenId: string, before: Household, after: Household) {
-  if (!supabase) return;
-  const { settingsChanged, upserts, deletes } = diff(before, after);
-  const jobs: PromiseLike<{ error: unknown }>[] = [];
-  if (settingsChanged) jobs.push(supabase.from("households").update({ name: after.name, settings: settingsOf(after) }).eq("id", kitchenId));
-  if (upserts.length) jobs.push(supabase.from("items").upsert(upserts.map((i) => toRow(kitchenId, i))));
-  if (deletes.length) jobs.push(supabase.from("items").delete().eq("household_id", kitchenId).in("id", deletes));
-  const results = await Promise.all(jobs);
-  if (results.some((r) => r.error)) {
-    console.error("[KitchenStock] save failed", results.map((r) => r.error).filter(Boolean));
+function setOutbox(o: Outbox) {
+  outbox = o;
+  if (app.kitchenId) {
+    try {
+      if (isEmpty(o)) localStorage.removeItem(outboxKey(app.kitchenId));
+      else localStorage.setItem(outboxKey(app.kitchenId), JSON.stringify(o));
+    } catch {
+      /* the in-memory copy still gets sent */
+    }
+  }
+  set({ pending: size(o) });
+}
+
+function loadOutbox(id: string): Outbox {
+  try {
+    const s = localStorage.getItem(outboxKey(id));
+    return s ? (JSON.parse(s) as Outbox) : emptyOutbox();
+  } catch {
+    return emptyOutbox();
+  }
+}
+
+/** Send what's waiting. Returns true when nothing is left waiting. */
+async function flush(): Promise<boolean> {
+  const kitchenId = app.kitchenId;
+  if (!supabase || !kitchenId || isEmpty(outbox)) return isEmpty(outbox);
+  if (flushing) return false;
+  flushing = true;
+  const sent = outbox;
+  const jobs: PromiseLike<{ error: unknown; status?: number }>[] = [];
+  if (sent.settings) jobs.push(supabase.from("households").update(sent.settings).eq("id", kitchenId));
+  const rows = Object.values(sent.upserts);
+  if (rows.length) jobs.push(supabase.from("items").upsert(rows));
+  if (sent.deletes.length) jobs.push(supabase.from("items").delete().eq("household_id", kitchenId).in("id", sent.deletes));
+  let results: { error: unknown; status?: number }[];
+  try {
+    results = await Promise.all(jobs);
+  } catch (e) {
+    results = [{ error: e, status: 0 }];
+  }
+  flushing = false;
+  if (app.kitchenId !== kitchenId) return false;
+
+  const failed = results.filter((r) => r.error);
+  if (failed.some(isOffline)) {
+    // No signal: keep everything and try again when the phone is back online.
+    set({ offline: true });
+    return false;
+  }
+  setOutbox(settle(outbox, sent));
+  set({ offline: false });
+  if (failed.length) {
+    console.error("[KitchenStock] save refused", failed.map((r) => r.error));
     set({ problem: "That change didn't save. Reloading the shared list." });
     await openKitchen(kitchenId);
+    return false;
   }
+  if (!isEmpty(outbox)) return flush();
+  return true;
 }
 
 export function replaceHousehold(h: Household) {
@@ -219,7 +292,15 @@ export async function openKitchen(id: string) {
   }
   // Show the last copy on this device right away, then load the real one.
   const cached = app.kitchenId === id ? app.household : readJson(cacheKey(id));
-  set({ kitchenId: id, household: cached, status: cached ? "ready" : "loading" });
+  if (app.kitchenId !== id) outbox = loadOutbox(id);
+  set({ kitchenId: id, household: cached, status: cached ? "ready" : "loading", pending: size(outbox) });
+
+  // Changes made here while offline go up before the shared copy comes down.
+  if (!(await flush()) && !isEmpty(outbox)) {
+    set({ problem: "No signal. Your changes are saved on this phone and will sync when you're back online." });
+    listen(id);
+    return;
+  }
 
   const [hh, items] = await Promise.all([
     supabase.from("households").select("id, name, settings").eq("id", id).single(),
@@ -230,7 +311,13 @@ export async function openKitchen(id: string) {
     return;
   }
   if (app.kitchenId !== id) return; // switched kitchens while loading
-  set({ household: householdFrom(hh.data as HouseholdRow, items.data as ItemRow[]), status: "ready" });
+  if (!isEmpty(outbox)) {
+    // Something was changed while loading: keep this phone's copy and send it first.
+    void flush();
+    listen(id);
+    return;
+  }
+  set({ household: householdFrom(hh.data as HouseholdRow, items.data as ItemRow[]), status: "ready", offline: false });
   listen(id);
 }
 
@@ -243,6 +330,9 @@ function listen(id: string) {
     .on("postgres_changes", { event: "*", schema: "public", table: "items", filter: `household_id=eq.${id}` }, (p) => {
       const h = app.household;
       if (!h || app.kitchenId !== id) return;
+      const touched = ((p.new as Partial<ItemRow>)?.id ?? (p.old as Partial<ItemRow>)?.id) as string | undefined;
+      // A change still waiting to be sent from this phone wins over the echo.
+      if (touched && (touched in outbox.upserts || outbox.deletes.includes(touched))) return;
       if (p.eventType === "DELETE") {
         const gone = (p.old as Partial<ItemRow>).id;
         set({ household: { ...h, items: h.items.filter((i) => i.id !== gone) } });
@@ -306,6 +396,17 @@ export async function createInvite(): Promise<{ code?: string; error?: string }>
 }
 
 // ---------- start up ----------
+
+if (supabase && typeof window !== "undefined") {
+  // Back online: send what's waiting, then pick up anything others changed.
+  window.addEventListener("online", () => {
+    if (app.kitchenId) void openKitchen(app.kitchenId);
+  });
+  // A slow retry in case the browser never says it's back online.
+  setInterval(() => {
+    if (!isEmpty(outbox) && !flushing) void flush();
+  }, 30_000);
+}
 
 if (supabase) {
   supabase.auth.onAuthStateChange((event, session) => {
