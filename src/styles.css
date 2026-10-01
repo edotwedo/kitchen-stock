@@ -330,3 +330,14 @@ button { cursor: pointer; }
 .libgroup { display: flex; flex-direction: column; gap: 6px; }
 .tag.limit { background: color-mix(in srgb, var(--low) 16%, transparent); color: var(--low); }
 .check.maybe { border-style: dashed; border-color: var(--half); color: var(--half); }
+
+/* ---------- sign in / set up ---------- */
+.welcome form.stack, .welcome .stack { display: flex; flex-direction: column; gap: 12px; max-width: 360px; }
+.welcome .stack p { margin: 0 0 4px; }
+.welcome .field input, .set input.code {
+  height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: 16px; width: 100%;
+}
+input.code { letter-spacing: 3px; font-variant-numeric: tabular-nums; font-size: 20px !important; }
+.welcome .join { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+.welcome .linkbtn { margin-top: 28px; }
+.formerror { color: var(--out); font-weight: 600; margin: 14px 0 0; max-width: 360px; }

@@ -177,7 +177,7 @@ function Library({ h }: { h: Household }) {
   );
 }
 
-export function Settings({ h, onClose, backup }: { h: Household; onClose: () => void; backup: React.ReactNode }) {
+export function Settings({ h, onClose, backup, sharing }: { h: Household; onClose: () => void; backup: React.ReactNode; sharing: React.ReactNode }) {
   const [kind, setKind] = useState<LocationKind>("pantry");
 
   useEffect(() => {
@@ -289,6 +289,13 @@ export function Settings({ h, onClose, backup }: { h: Household; onClose: () => 
             ))}
           </div>
         </section>
+
+        {sharing && (
+          <section className="set">
+            <h4>Sharing</h4>
+            {sharing}
+          </section>
+        )}
 
         <section className="set">
           <h4>Backup</h4>

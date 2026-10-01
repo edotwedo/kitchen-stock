@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { NoKitchen, Sharing, SignIn } from "./Account";
 import { EditSheet, type SheetTarget } from "./EditSheet";
 import { Settings } from "./Settings";
 import { dueTag } from "./format";
 import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, byLevelThenName, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
-import { exportJson, replaceHousehold, saveItem, useHousehold } from "./store";
+import { clearProblem, exportJson, replaceHousehold, saveItem, useApp } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
 
 type Tab = { key: string; label: string; count: number; filter: (i: Item) => boolean; sort?: (a: Item, b: Item) => number; byLocation?: boolean };
@@ -36,7 +37,8 @@ function useToast() {
 }
 
 export default function App() {
-  const h = useHousehold();
+  const app = useApp();
+  const h = app.household;
   const [tab, setTab] = useState(readTab);
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
@@ -44,6 +46,30 @@ export default function App() {
   const [toastEl, toast] = useToast();
   const today = new Date();
 
+  // Database problems surface as a toast, once.
+  useEffect(() => {
+    if (!app.problem) return;
+    toast(app.problem);
+    clearProblem();
+  }, [app.problem, toast]);
+
+  if (app.status === "loading" && !h)
+    return (
+      <div className="wrap">
+        <div className="welcome">
+          <h1>Kitchen Stock</h1>
+          <p>Loading your kitchen…</p>
+        </div>
+      </div>
+    );
+  if (app.status === "signed-out") return <SignIn />;
+  if (app.status === "no-kitchen")
+    return (
+      <>
+        <NoKitchen email={app.email} />
+        {toastEl}
+      </>
+    );
   if (!h)
     return (
       <>
@@ -101,7 +127,7 @@ export default function App() {
     <div className="wrap">
       <header className="head">
         <div className="titlebar">
-          <h1 className="title">Kitchen Stock</h1>
+          <h1 className="title">{app.cloud ? h.name : "Kitchen Stock"}</h1>
           <button className="iconbtn" type="button" aria-label="Kitchen settings" onClick={() => setMenu(true)}>
             <MenuIcon />
           </button>
@@ -162,7 +188,14 @@ export default function App() {
       </button>
 
       {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={toast} />}
-      {menu && <Settings h={h} onClose={() => setMenu(false)} backup={<BackupButtons onDone={toast} onLoaded={() => setMenu(false)} />} />}
+      {menu && (
+        <Settings
+          h={h}
+          onClose={() => setMenu(false)}
+          sharing={app.cloud ? <Sharing app={app} /> : null}
+          backup={<BackupButtons onDone={toast} onLoaded={() => setMenu(false)} />}
+        />
+      )}
       {toastEl}
     </div>
   );
