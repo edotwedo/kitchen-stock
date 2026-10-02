@@ -53,5 +53,8 @@ export default defineConfig({
     environment: "node",
     // Tests never talk to the real database: no address or key means local-only mode.
     env: { VITE_SUPABASE_URL: "", VITE_SUPABASE_PUBLISHABLE_KEY: "" },
+    // The screen tests (accessibility, receipts, walk-through) take a few seconds each; on a busy
+    // machine they ran past the 5-second default and failed for no real reason.
+    testTimeout: 20_000,
   },
 } as Parameters<typeof defineConfig>[0]);
