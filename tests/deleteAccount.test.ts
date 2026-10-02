@@ -83,6 +83,8 @@ describe("delete my account", () => {
     ]);
     expect((await admin<{ created_by: string | null }>("select created_by from public.households where id = $1", [shared])).rows[0].created_by).toBeNull();
     expect((await as(BEN, "select name from public.items where household_id = $1", [shared])).rows).toEqual([{ name: "Rice" }]);
+    // Her edits stay, unsigned: no item may still point at the deleted sign-in.
+    expect((await admin("select updated_by from public.items where household_id = $1", [shared])).rows).toEqual([{ updated_by: null }]);
     expect((await admin("select 1 from public.invites where household_id = $1", [shared])).rows).toHaveLength(0);
   });
 

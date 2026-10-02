@@ -170,6 +170,9 @@ declare
 begin
   if me is null then raise exception 'Sign in first'; end if;
   for m in select household_id, role from public.members where user_id = me loop
+    -- One account deletion at a time per kitchen, so two owners leaving together can't
+    -- each count on the other staying and leave the kitchen with no owner.
+    perform 1 from public.households where id = m.household_id for update;
     if not exists (select 1 from public.members where household_id = m.household_id and user_id <> me) then
       delete from public.households where id = m.household_id;
     else
@@ -184,6 +187,11 @@ begin
       delete from public.members where household_id = m.household_id and user_id = me;
     end if;
   end loop;
+  -- Deleting the sign-in empties items.updated_by, but the stamp trigger would write
+  -- auth.uid() (still this person) straight back, leaving items pointing at a deleted
+  -- account. Forget who's asking for the rest of this transaction so it stays empty.
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claims', '', true);
   delete from auth.users where id = me;
 end;
 $$;
