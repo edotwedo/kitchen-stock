@@ -28,6 +28,8 @@ export function ScanSheet({ h, onClose, onFound }: { h: Household; onClose: () =
   const video = useRef<HTMLVideoElement>(null);
   const detector = useRef<Promise<Detector> | null>(null);
   const busy = useRef(false);
+  const scanning = useRef(false); // the camera is on and being read
+  const [noReader, setNoReader] = useState(false); // the barcode reader couldn't load: typing only
   const photoRef = useRef<HTMLInputElement>(null);
 
   const find = async (code: string) => {
@@ -50,7 +52,8 @@ export function ScanSheet({ h, onClose, onFound }: { h: Household; onClose: () =
     let timer = 0;
     let stopped = false;
     detector.current = makeDetector();
-    detector.current.catch(() => {});
+    // Without a reader (it couldn't download), neither the camera nor a photo can work: typing only.
+    detector.current.catch(() => !stopped && setNoReader(true));
     (async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
@@ -64,7 +67,13 @@ export function ScanSheet({ h, onClose, onFound }: { h: Household; onClose: () =
       await v.play().catch(() => {});
       setStage({ step: "scan" });
       const d = await detector.current!.catch(() => null);
-      if (!d) return setStage({ step: "nocamera" });
+      if (stopped) return;
+      if (!d) {
+        // Nothing can read the picture, so don't leave the camera running.
+        stream.getTracks().forEach((t) => t.stop());
+        return setStage({ step: "nocamera" });
+      }
+      scanning.current = true;
       const tick = async () => {
         if (stopped) return;
         if (!busy.current && v.readyState >= 2) {
@@ -103,7 +112,7 @@ export function ScanSheet({ h, onClose, onFound }: { h: Household; onClose: () =
   const again = () => {
     busy.current = false;
     setTyped("");
-    setStage({ step: video.current?.srcObject ? "scan" : "nocamera" });
+    setStage({ step: scanning.current ? "scan" : "nocamera" });
   };
 
   return (
@@ -117,7 +126,7 @@ export function ScanSheet({ h, onClose, onFound }: { h: Household; onClose: () =
         <p className="sub" role="status">
           {stage.step === "starting" && "Starting the camera…"}
           {stage.step === "scan" && "Line up the barcode inside the box."}
-          {stage.step === "nocamera" && "The camera isn't available here. Take a photo of the barcode, or type its number."}
+          {stage.step === "nocamera" && (noReader ? "Barcodes can't be read here right now. Type the number under the bars instead." : "The camera isn't available here. Take a photo of the barcode, or type its number.")}
           {stage.step === "looking" && `Looking up ${stage.code}…`}
           {stage.step === "missing" &&
             (stage.code ? `Barcode ${stage.code} isn't in the product database yet. Type the name instead, or try another.` : "Couldn't find a barcode in that photo. Try closer, flat and well lit.")}
@@ -135,14 +144,25 @@ export function ScanSheet({ h, onClose, onFound }: { h: Household; onClose: () =
             Look up
           </button>
         </form>
-        <input ref={photoRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void fromPhoto(e.target.files?.[0])} />
+        <input
+          ref={photoRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = ""; // so picking the same photo again still counts
+            void fromPhoto(file);
+          }}
+        />
         <div className="actions">
           {stage.step === "missing" && (
             <button className="btn" type="button" onClick={again}>
               Scan another
             </button>
           )}
-          {stage.step === "nocamera" && (
+          {stage.step === "nocamera" && !noReader && (
             <button className="btn primary" type="button" onClick={() => photoRef.current?.click()}>
               Take a photo of it
             </button>
