@@ -1,75 +1,63 @@
-# Putting Kitchen Stock online (Cloudflare Pages)
+# How Kitchen Stock is hosted
 
-About 10 minutes once there's a Cloudflare account. **Free**: Cloudflare Pages costs nothing for a site
-like this, and "on both free and paid plans, requests to static assets are free and unlimited"
-([Cloudflare](https://developers.cloudflare.com/pages/functions/pricing/)). A domain name is optional
-and is the only thing that would cost money.
+**Live:** https://kitchen-stock.phone-liaison.workers.dev (landing page at `/about.html`, privacy policy
+at `/privacy.html`). **Cost: $0.** A domain name is optional and is the only thing that would cost money.
 
-The app is a static site (HTML, JavaScript, icons). The shared data lives in Supabase, which is already
-set up, so Cloudflare only serves the files.
+| Piece | Where | Notes |
+| --- | --- | --- |
+| The app (HTML, JavaScript, icons) | Cloudflare Workers static assets, free | Deployed from this computer with `npm run deploy` (not connected to GitHub) |
+| Daily keep-alive | `worker/index.js`, a cron in `wrangler.jsonc` | One tiny read a day so the free Supabase project never pauses |
+| Shared data and sign-in | Supabase, free plan | Project `ciaydggwsokkwphgtbfz` |
+| Sign-in emails | Brevo, free plan, as Supabase's custom SMTP | Brevo key in Proton Pass; expires Oct 2027, or after 90 days unused |
 
-## 1. Connect the repo (5 minutes)
+The phone app (`kitchen-stock-app`) uses the same Supabase project, so web and phone share one kitchen.
 
-1. In the Cloudflare dashboard: **Workers & Pages** > **Create** > **Pages** > **Connect to Git**.
-2. Pick GitHub, allow Cloudflare to see the `kitchen-stock` repo, and choose it.
-3. Build settings ([Cloudflare's Vite settings](https://developers.cloudflare.com/pages/configuration/build-configuration/)):
+## Deploying a new version
 
-   | Setting | Value |
-   | --- | --- |
-   | Framework preset | Vite (or None) |
-   | Build command | `npm run build` |
-   | Build output directory | `dist` |
-   | Production branch | `main` |
+1. `npm test` (everything should pass).
+2. `npm run deploy`. It builds the app, reads `.env.local` for the Supabase address and publishable key
+   (both public; they ship inside the app), and runs `wrangler deploy`. The first time on a new computer,
+   run `npx wrangler login` first.
+3. Open the live address on a phone and check the change.
 
-4. **Environment variables** (same values as `.env.local` on this computer):
+`.env.local` needs:
 
-   | Name | Value |
-   | --- | --- |
-   | `VITE_SUPABASE_URL` | `https://ciaydggwsokkwphgtbfz.supabase.co` |
-   | `VITE_SUPABASE_PUBLISHABLE_KEY` | the `sb_publishable_...` key (it's meant to be public; it ships inside the app) |
-   | `VITE_VAPID_PUBLIC_KEY` | leave out until reminders are set up |
+| Name | Value |
+| --- | --- |
+| `VITE_SUPABASE_URL` | `https://ciaydggwsokkwphgtbfz.supabase.co` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | the `sb_publishable_...` key (Supabase, Project Settings, API Keys) |
+| `VITE_VAPID_PUBLIC_KEY` | only once web push reminders are set up (see `supabase/README.md`) |
 
-   The build image uses Node 22.16 by default, and the build tools need 22.12 or newer, so it works as is.
-   Set `NODE_VERSION` only if a build ever complains about Node ([build image](https://developers.cloudflare.com/pages/configuration/build-image/)).
+`public/_headers` sets caching and security headers. Any address that isn't a file opens the app
+(`not_found_handling` in `wrangler.jsonc`).
 
-5. **Save and Deploy.** The site appears at `https://kitchen-stock.pages.dev` (or a similar name if
-   that one's taken). Every push to `main` redeploys on its own. The free plan allows 500 builds a month
-   ([limits](https://developers.cloudflare.com/pages/platform/limits/)).
+## Database updates
 
-`public/_headers` is already in the repo, so the app's caching and security headers apply with no extra
-setup. Unknown paths fall back to the app automatically, and the landing page is at `/about.html`.
+New database changes are numbered files in `supabase/migrations/`. To apply one: Supabase, **SQL
+Editor**, new query, paste the file, **Run**; it should say "Success. No rows returned." Each file is safe to
+run twice. `supabase/catch-up.sql` holds every update after 0001 in one file (made by `tools/catch-up.mjs`;
+a test checks it's current).
 
-## 2. Tell Supabase about the new address (2 minutes)
+| Update | What it adds | Applied to the live database |
+| --- | --- | --- |
+| 0002 to 0005 | sharing roles and handover, reminders, shelf spots, shopping notes | yes, Oct 2, 2026 |
+| 0006 | Delete my account (required by the app stores) | **not yet** |
 
-Sign-in links only go to addresses Supabase knows. In Supabase: **Authentication** > **URL Configuration**:
+The app keeps working without a missing update and says which one is needed.
 
-- **Site URL**: the new address, e.g. `https://kitchen-stock.pages.dev`
-- **Redirect URLs**: add the same address, and keep `http://localhost:3000` for testing on this computer.
+## Supabase settings that matter
 
-## 3. Check it (3 minutes)
+- **Authentication, URL Configuration:** Site URL and Redirect URLs are the live address (keep
+  `http://localhost:3000` in Redirect URLs for testing on this computer).
+- **Authentication, Emails, SMTP Settings:** Brevo (custom SMTP on).
+- **Authentication, Emails, Templates, Magic Link:** must include `{{ .Token }}` (the 6-digit code), which
+  the phone app signs in with.
+- **Free plan limits:** no automatic backups, and a pause after a week with no activity (the keep-alive
+  covers that). Moving to Pro ($25 a month) makes sense once paying clients depend on it; Phil's call.
 
-- Open `https://<your-address>/about.html` on a phone and tap **Try the sample kitchen**.
-- Sign in with your email, open your kitchen, and add it to the home screen (steps are on the landing page).
-- Turn on airplane mode and reopen it: the list should still be there.
+## Optional: a domain name (costs money, Phil's call)
 
-## Optional: a domain name (costs money, your call)
-
-- Cloudflare sells domains at cost: a `.com` is about **$10.44 a year**, with the same price at renewal.
-  The registry raises its fee on Nov 1, 2026, which takes it to about **$11.15**
-  ([source](https://startupowl.com/reviews/cloudflare-registrar)). Other endings cost different amounts;
-  the dashboard shows the price before you buy.
-- Not needed to start: `pages.dev` works on every phone and supports install and offline.
-- If you buy one later: **Custom domains** in the Pages project, then update the two Supabase URL
-  settings above.
-
-## Still needed for other people to sign in
-
-Supabase's built-in email only reaches members of your Supabase team. Before clients can sign in, connect
-a sending service (Brevo has a free tier) under **Authentication** > **Emails** > **SMTP Settings**; see
-`supabase/README.md`. Until then, the sample kitchen works for anyone with no sign-in.
-
-## Phone Liaison is different
-
-Phone Liaison runs its own small server (it saves requests and has an owner dashboard), so it can't go on
-Pages as-is. It needs a host that runs Node, or a rewrite of its few server routes as Cloudflare Functions.
-That's a separate step for later.
+Cloudflare sells domains at cost: a `.com` is about $10.44 a year (about $11.15 after the registry's
+Nov 1, 2026 increase). If one is bought: add it under the Worker's **Domains & Routes**, update the two
+Supabase URL settings, authenticate it in Brevo so sign-in emails don't land in spam, and update the
+addresses in the phone app (`src/lib/sync.ts`, the invite message) and the organizer materials.
