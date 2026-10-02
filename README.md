@@ -42,6 +42,10 @@ npm run build
 
 Without Supabase settings the app runs in device-only mode. To connect a database, copy `.env.example` to `.env.local`, fill in the project URL and publishable key, and run the files in `supabase/migrations/` in order in the Supabase SQL editor (see `supabase/README.md`).
 
+## Hosting
+
+It's a static site; `docs/HOSTING.md` has the Cloudflare Pages steps (free) and the Supabase settings that go with them.
+
 ## Privacy
 
 No household data lives in this repo. Real inventory files, `.env` files and notes are git-ignored, and every table is protected by row-level security so people only see kitchens they belong to.
