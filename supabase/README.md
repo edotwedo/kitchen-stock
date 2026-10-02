@@ -1,5 +1,7 @@
 # Database and server setup
 
+**Shortcut:** if `0001` is already run (it is for Phil's kitchen), paste `catch-up.sql` instead of the files below. It holds every later update in order and is safe to run more than once.
+
 Everything here is run once, in order. The SQL files are pasted into the Supabase dashboard's **SQL Editor** and run with **Run**; each should end with "Success. No rows returned."
 
 | File | What it adds |
