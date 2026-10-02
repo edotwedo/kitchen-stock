@@ -437,6 +437,10 @@ html.printing #root { display: none; }
 .role { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--sunk); text-transform: capitalize; }
 .role.owner { background: var(--brand); color: var(--brand-ink); }
 .person-actions { display: flex; gap: 14px; align-items: center; }
+.kitchen .who { display: flex; flex-direction: column; gap: 3px; }
+.glance { font-size: 12.5px; font-weight: 500; color: var(--muted); line-height: 1.4; }
+.glance .hot { color: var(--low-ink); font-weight: 700; }
+.kitchen .btn.small { padding: 0 14px; }
 .linkbtn.danger { color: var(--out); }
 .linkbtn.danger.armed { font-weight: 700; }
 .btn.armed { border-color: var(--out); color: var(--out); }

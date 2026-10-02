@@ -3,6 +3,7 @@ import { useSyncExternalStore } from "react";
 import { diff, fromRow, householdFrom, settingsOf, supabase, toRow, type HouseholdRow, type ItemRow } from "./cloud";
 import { sampleKitchen } from "./demo";
 import { importHousehold } from "./importData";
+import { summarize, summarizeAll, type KitchenSummary, type SummaryRow } from "./kitchenSummary";
 import { emptyOutbox, isEmpty, isOffline, record, settle, size, type Outbox } from "./outbox";
 import type { Household, Item } from "./types";
 
@@ -519,6 +520,57 @@ async function loadKitchensThenOpen(session: Session, id: string) {
     /* not essential */
   }
   await loadKitchens(session);
+}
+
+// ---------- every kitchen at a glance ----------
+
+export interface KitchenGlance extends Kitchen {
+  /** null when it couldn't be loaded (no signal): show the name only. */
+  summary: KitchenSummary | null;
+  current: boolean;
+}
+
+const OVERVIEW_PAGE = 1000; // the most rows the database hands back per request
+
+/**
+ * Use first, shopping and counting for every kitchen this person is in: one query for the
+ * kitchens' settings, one for their items (only the columns the counts need, a page at a
+ * time for big lists). The open kitchen uses the copy on this phone, which is up to the
+ * second and works without signal.
+ */
+export async function kitchenOverview(today = new Date()): Promise<{ kitchens: KitchenGlance[]; error?: string }> {
+  const here = app.household && app.kitchenId ? summarize(app.household, app.household.items, today) : null;
+  const glance = (summaries: Map<string, KitchenSummary>, names = new Map<string, string>()): KitchenGlance[] =>
+    app.kitchens.map((k) => {
+      const current = k.id === app.kitchenId;
+      return { ...k, name: names.get(k.id) ?? k.name, current, summary: current && here ? here : (summaries.get(k.id) ?? null) };
+    });
+  const ids = app.kitchens.map((k) => k.id).filter((id) => !(id === app.kitchenId && here));
+  if (!supabase || app.demo || !ids.length) return { kitchens: glance(new Map()) };
+
+  try {
+    const pageOf = (n: number) =>
+      supabase!
+        .from("items")
+        .select("household_id, level, use_by, frozen_on, wrap, loc")
+        .in("household_id", ids)
+        .order("household_id")
+        .order("id")
+        .range(n * OVERVIEW_PAGE, (n + 1) * OVERVIEW_PAGE - 1);
+    const [hh, first] = await Promise.all([supabase.from("households").select("id, name, settings").in("id", ids), pageOf(0)]);
+    if (hh.error || first.error) throw hh.error ?? first.error;
+    const rows = [...((first.data ?? []) as SummaryRow[])];
+    for (let n = 1, last = rows.length; last === OVERVIEW_PAGE; n++) {
+      const page = await pageOf(n);
+      if (page.error) throw page.error;
+      last = (page.data ?? []).length;
+      rows.push(...((page.data ?? []) as SummaryRow[]));
+    }
+    const households = (hh.data ?? []) as HouseholdRow[];
+    return { kitchens: glance(summarizeAll(households, rows, today), new Map(households.map((h) => [h.id, h.name]))) };
+  } catch {
+    return { kitchens: glance(new Map()), error: "Couldn't load how the other kitchens are doing (no signal?). Showing names only." };
+  }
 }
 
 // ---------- people in a kitchen (database update 0002) ----------

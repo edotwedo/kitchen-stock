@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { createInvite, createKitchen, deleteAccount, deviceList, joinKitchen, listMembers, openKitchen, removeMember, sendCode, setMemberRole, signOut, startDemo, verifyCode, type AppState, type Member } from "./store";
+import { useEffect, useMemo, useState } from "react";
+import { byUrgency, countedText, summarize } from "./kitchenSummary";
+import { createInvite, createKitchen, deleteAccount, deviceList, joinKitchen, kitchenOverview, listMembers, openKitchen, removeMember, sendCode, setMemberRole, signOut, startDemo, verifyCode, type AppState, type KitchenGlance, type Member } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household } from "./types";
 
 const EMPTY_KITCHEN: Household = {
@@ -191,16 +192,7 @@ export function Sharing({ app }: { app: AppState }) {
       <NewKitchen />
       <JoinAnother />
 
-      {others.length > 0 && (
-        <div className="menu">
-          <span className="hint small">Your other kitchens</span>
-          {others.map((k) => (
-            <button key={k.id} className="btn" type="button" onClick={() => void openKitchen(k.id)}>
-              {k.name} <small>{k.role}</small>
-            </button>
-          ))}
-        </div>
-      )}
+      {others.length > 0 && !app.demo && <YourKitchens app={app} />}
       {error && <p className="formerror">{error}</p>}
       <div className="menu">
         {current && members && members.length > 1 && (
@@ -215,6 +207,69 @@ export function Sharing({ app }: { app: AppState }) {
         <TwoTap label="Delete my account" confirm="Tap again to delete it for good" disabled={busy} onConfirm={() => act(deleteAccount)} />
       </div>
     </>
+  );
+}
+
+/**
+ * Every kitchen this person is in, at a glance: what needs using first, how long the shopping
+ * list is, and the place that's gone longest without a count. Made for organizers keeping
+ * several client kitchens. Busiest kitchens first; tap Open to switch.
+ */
+function YourKitchens({ app }: { app: AppState }) {
+  const [loaded, setLoaded] = useState<KitchenGlance[] | null>(null);
+  const [note, setNote] = useState("");
+  const which = app.kitchens.map((k) => `${k.id}:${k.name}:${k.role}`).join("|");
+  useEffect(() => {
+    let live = true;
+    void kitchenOverview().then((r) => {
+      if (!live) return;
+      setLoaded(r.kitchens);
+      setNote(r.error ?? "");
+    });
+    return () => {
+      live = false;
+    };
+  }, [app.kitchenId, which]);
+
+  // The open kitchen follows changes made on this phone as they happen.
+  const today = new Date();
+  const here = useMemo(() => (app.household ? summarize(app.household, app.household.items, new Date()) : null), [app.household]);
+  const rows = (loaded ?? app.kitchens.map((k) => ({ ...k, summary: null, current: k.id === app.kitchenId })))
+    .map((k) => (k.current && here ? { ...k, summary: here } : k))
+    .sort(byUrgency);
+
+  return (
+    <div className="menu">
+      <span className="hint small">Your kitchens</span>
+      <div className="people kitchens">
+        {rows.map((k) => (
+          <div className="person kitchen" key={k.id}>
+            <span className="who">
+              <span>
+                {k.name}
+                {k.current && <small> (open now)</small>}
+              </span>
+              {k.summary ? (
+                <span className="glance">
+                  <span className={k.summary.useFirst ? "hot" : undefined}>{k.summary.useFirst} use first</span> · {k.summary.shopping} on the shopping list
+                  <br />
+                  {countedText(k.summary, today)}
+                </span>
+              ) : (
+                !loaded && <span className="glance">Loading…</span>
+              )}
+            </span>
+            <span className={"role " + k.role}>{k.role}</span>
+            {!k.current && (
+              <button className="btn small" type="button" aria-label={`Open ${k.name}`} onClick={() => void openKitchen(k.id)}>
+                Open
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      {note && <p className="hint small">{note}</p>}
+    </div>
   );
 }
 
