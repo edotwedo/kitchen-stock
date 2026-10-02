@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HAS_SEED, seedJson } from "./seedFile";
 import { importHousehold } from "../src/importData";
-import { printPages } from "../src/PrintView";
+import { printPages } from "../src/printPages";
 
 
 describe.skipIf(!HAS_SEED)("print sheets from the seed", () => {

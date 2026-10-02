@@ -1,42 +1,15 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { fmtDate } from "./format";
-import { byLevelThenName, dueDate, isFrozen, isShopping, toIso } from "./logic";
-import type { Household, Item } from "./types";
+import { toIso } from "./logic";
+import { printPages, type PrintKind } from "./printPages";
+import type { Household } from "./types";
 
 /**
  * Printable sheets in print blue (the owner's printer fades black): an inventory
  * sheet per place with a box to tick when counting, or the shopping list.
  * Rendered outside the app so only the sheets print.
  */
-
-export type PrintKind = "inventory" | "shopping";
-
-export interface PrintPage {
-  place: string;
-  frozen: boolean;
-  rows: { name: string; qty: string; level: string; date: string; note: string; buy: string }[];
-}
-
-export function printPages(h: Household, kind: PrintKind, places: string[]): PrintPage[] {
-  return h.locations
-    .filter((l) => places.includes(l.key))
-    .map((l) => {
-      const items = h.items
-        .filter((i) => i.loc === l.key && (kind === "inventory" || isShopping(i)))
-        .sort(kind === "inventory" ? (a, b) => a.name.localeCompare(b.name) : byLevelThenName);
-      return {
-        place: l.label,
-        frozen: l.kind === "freezer",
-        rows: items.map((i: Item) => {
-          const due = dueDate(i, h);
-          const date = isFrozen(i, h) ? (i.frozenOn ? fmtDate(i.frozenOn, true) : "") : due ? fmtDate(due.date, true) : "";
-          return { name: i.name, qty: i.qty, level: i.level, date, note: i.note, buy: i.buy?.trim() ?? "" };
-        }),
-      };
-    })
-    .filter((p) => p.rows.length > 0);
-}
 
 export function PrintView({ h, onClose }: { h: Household; onClose: () => void }) {
   const [kind, setKind] = useState<PrintKind>("inventory");

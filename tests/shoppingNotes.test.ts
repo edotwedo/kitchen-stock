@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fromRow, toRow } from "../src/cloud";
 import { sampleKitchen } from "../src/demo";
 import { importHousehold } from "../src/importData";
-import { printPages } from "../src/PrintView";
+import { printPages } from "../src/printPages";
 
 describe("shopping notes", () => {
   const h = sampleKitchen(new Date("2026-10-01T12:00:00"));
