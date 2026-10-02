@@ -21,9 +21,7 @@ describe("database updates", () => {
   it("catch-up.sql is up to date with the migrations folder", () => {
     const before = read("catch-up.sql");
     execFileSync(process.execPath, [new URL("../tools/catch-up.mjs", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1")]);
-    const lf = (s: string) => s.replace(/
-/g, "
-");
+    const lf = (s: string) => s.replace(/\r\n/g, "\n");
     expect(lf(read("catch-up.sql"))).toBe(lf(before));
   });
 
