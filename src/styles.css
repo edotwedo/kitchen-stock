@@ -499,3 +499,22 @@ html.printing #root { display: none; }
 .count-report .what small { opacity: .8; }
 .tag.buy { background: color-mix(in srgb, var(--half) 14%, transparent); color: var(--half); }
 .shop-group .what small { display: block; font-size: 10px; opacity: .85; }
+
+/* ---------- receipt scanning ---------- */
+.barbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.receipt-rows { display: flex; flex-direction: column; max-height: 55dvh; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
+.receipt-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; }
+.receipt-row + .receipt-row { border-top: 1px solid var(--line); }
+.receipt-row.off { opacity: .5; }
+.receipt-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--brand); }
+.receipt-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.receipt-name { border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--ink); font: 600 15px var(--body); padding: 4px 6px; margin-left: -6px; width: 100%; }
+.receipt-name:focus { border-color: var(--focus); outline: none; }
+.receipt-main small { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.receipt-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.receipt-side select { height: 32px; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); max-width: 8.5rem; }
+.tag.restock { color: var(--full); background: color-mix(in srgb, var(--full) 14%, transparent); }
+.tag.new { color: var(--half); background: color-mix(in srgb, var(--half) 14%, transparent); }
+.paste { margin-top: 14px; font-size: 14px; }
+.paste summary { cursor: pointer; color: var(--muted); }
+.paste textarea { width: 100%; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg); color: var(--ink); font: 13px ui-monospace, Consolas, monospace; padding: 8px; }

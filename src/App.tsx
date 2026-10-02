@@ -12,7 +12,8 @@ import { MenuIcon, PlusIcon, SearchIcon } from "./icons";
 import { ImportError, importHousehold } from "./importData";
 import { byDue, bySpot, byLevelThenName, daysUntil, isFrozen, isReminderDue, isShopping, isUseFirst, matchesQuery, nextLevel, toIso } from "./logic";
 import { mergeList } from "./merge";
-import { clearProblem, endDemo, exportJson, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, updateHousehold, useApp } from "./store";
+import { clearProblem, endDemo, exportJson, putAwayReceipt, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, undoReceipt, updateHousehold, useApp } from "./store";
+import { ReceiptSheet } from "./ReceiptSheet";
 import { StoreRun } from "./StoreRun";
 import { Walkthrough } from "./Walkthrough";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
@@ -79,6 +80,7 @@ export default function App() {
   const [cook, setCook] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [storeRun, setStoreRun] = useState(false);
+  const [receipt, setReceipt] = useState(false);
   const [counting, setCounting] = useState<string | null>(null);
   const useFirstCount = h ? h.items.filter((i) => isUseFirst(i, h, new Date())).length : 0;
 
@@ -242,11 +244,16 @@ export default function App() {
           <div className="cookbar">
             <p>
               <strong>Back from the store?</strong>
-              Tick what you bought and restock it all at once.
+              Scan the receipt, or tick what you bought.
             </p>
-            <button className="btn" type="button" onClick={() => setStoreRun(true)}>
-              Restock
-            </button>
+            <div className="barbtns">
+              <button className="btn" type="button" onClick={() => setReceipt(true)}>
+                Scan receipt
+              </button>
+              <button className="btn" type="button" onClick={() => setStoreRun(true)}>
+                Restock
+              </button>
+            </div>
           </div>
         )}
         {current.key.startsWith("loc:") && !searching && current.count > 1 && (
@@ -304,6 +311,18 @@ export default function App() {
             restockItems(picked.map((i) => i.id));
             setStoreRun(false);
             toast(`Restocked ${picked.length} ${picked.length === 1 ? "item" : "items"}`, () => restoreItems(picked));
+          }}
+        />
+      )}
+      {receipt && (
+        <ReceiptSheet
+          h={h}
+          onClose={() => setReceipt(false)}
+          onPutAway={(restock, adds) => {
+            const undo = putAwayReceipt(restock, adds);
+            setReceipt(false);
+            const parts = [restock.length && `restocked ${restock.length}`, adds.length && `added ${adds.length}`].filter(Boolean).join(", ");
+            toast(parts.charAt(0).toUpperCase() + parts.slice(1), () => undoReceipt(undo));
           }}
         />
       )}

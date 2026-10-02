@@ -287,6 +287,38 @@ export function restockItems(ids: string[], today = new Date()) {
   });
 }
 
+/**
+ * Put a grocery receipt away in one change: restock what the kitchen already had, add what's new.
+ * Returns what's needed to undo it (the restocked items as they were, and the new items' ids).
+ */
+export function putAwayReceipt(restockIds: string[], adds: Partial<ItemFields>[], today = new Date()): { before: Item[]; added: string[] } {
+  const h = app.household;
+  if (!h) return { before: [], added: [] };
+  const updated = today.toISOString();
+  const day = toIsoDay(today);
+  const freezers = new Set(h.locations.filter((l) => l.kind === "freezer").map((l) => l.key));
+  const want = new Set(restockIds);
+  const before = h.items.filter((i) => want.has(i.id));
+  const restocked = h.items.map((i) => (want.has(i.id) ? { ...i, level: "full" as const, remindOn: "", ...(i.buy ? { buy: "" } : {}), ...(freezers.has(i.loc) ? { frozenOn: day } : {}), updated } : i));
+  const added = adds.map(
+    (a) =>
+      ({ name: "", loc: h.locations[0]?.key ?? "pantry", qty: "", level: "full", useBy: "", remindOn: "", frozenOn: "", wrap: "regular", note: "", flags: [], ...a, ...(freezers.has(a.loc ?? "") ? { frozenOn: day } : {}), id: crypto.randomUUID(), updated }) as Item,
+  );
+  apply({ ...h, items: [...restocked, ...added] });
+  return { before, added: added.map((i) => i.id) };
+}
+
+/** Undo putAwayReceipt. */
+export function undoReceipt(undo: { before: Item[]; added: string[] }) {
+  const h = app.household;
+  if (!h) return;
+  const gone = new Set(undo.added);
+  const back = new Map(undo.before.map((i) => [i.id, { ...i, updated: new Date().toISOString() }]));
+  apply({ ...h, items: h.items.filter((i) => !gone.has(i.id)).map((i) => back.get(i.id) ?? i) });
+}
+
+const toIsoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 export function deleteItem(id: string) {
   const h = app.household;
   if (h) apply({ ...h, items: h.items.filter((i) => i.id !== id) });
