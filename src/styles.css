@@ -493,3 +493,7 @@ html.printing #root { display: none; }
 .walk-levels .lvl.low { border-color: var(--low); } .walk-levels .lvl.out { border-color: var(--out); }
 .walk-levels .lvl[aria-pressed="true"] { border-width: 3px; background: var(--sunk); }
 .walk-done .big { font: 800 34px var(--display); margin: 10px 0 4px; }
+
+/* ---------- count summary (printed) ---------- */
+.count-report .count-line { margin: 4px 0 6px; font-size: 13px; }
+.count-report .what small { opacity: .8; }

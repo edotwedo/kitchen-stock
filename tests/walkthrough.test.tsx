@@ -49,6 +49,11 @@ describe("walk-through count", () => {
     await click(bar!.querySelector("button"));
     for (let n = 0; n < 9; n++) await click(document.querySelector('.walk-levels [aria-pressed="true"]'));
     expect(document.querySelector(".walk-done")!.textContent).toContain("Nothing changed");
+    await click([...document.querySelectorAll(".walk .btn")].find((b) => b.textContent === "Print summary"));
+    expect(document.querySelector(".count-report h1")!.textContent).toBe("Fridge: what changed");
+    expect(document.querySelector(".count-report .count-line")!.textContent).toContain("9 items counted, nothing changed.");
+    await click([...document.querySelectorAll(".printview .btn")].find((b) => b.textContent === "Close"));
+    expect(document.querySelector(".count-report")).toBeNull();
     await click([...document.querySelectorAll(".walk .btn")].find((b) => b.textContent === "Done"));
     const bar2 = [...document.querySelectorAll(".cookbar")].find((b) => b.textContent!.includes("Counting the fridge"));
     expect(bar2!.textContent).toContain("Last counted today.");
@@ -72,5 +77,23 @@ describe("last counted", () => {
     const h = markCounted("freezer", "2026-10-01")(sampleKitchen());
     expect(h.locations.find((l) => l.key === "freezer")!.counted).toBe("2026-10-01");
     expect(importHousehold(JSON.parse(JSON.stringify(h))).locations.find((l) => l.key === "freezer")!.counted).toBe("2026-10-01");
+  });
+});
+
+describe("count summary", () => {
+  it("groups changes the way a client reads them", async () => {
+    const { countSummary } = await import("../src/CountReport");
+    const h0 = sampleKitchen();
+    const by = (n: string) => h0.items.find((i) => i.name === n)!;
+    const set = (n: string, level: "full" | "half" | "low" | "out") => ({ ...by(n), level });
+    // After the count: milk ran out, eggs got low, ketchup was restocked, spinach used some, yogurt unchanged.
+    const after = { ...h0, items: h0.items.map((i) => ({ Milk: set("Milk", "out"), Eggs: set("Eggs", "low"), Ketchup: set("Ketchup", "full"), "Baby spinach": set("Baby spinach", "half") } as Record<string, typeof i>)[i.name] ?? i) };
+    const s = countSummary(after, "fridge", [by("Milk"), by("Eggs"), by("Ketchup"), by("Baby spinach"), by("Greek yogurt")], 9);
+    expect(s.place).toBe("Fridge");
+    expect(s.ranOut.map((c) => c.name)).toEqual(["Milk"]);
+    expect(s.gotLow.map((c) => `${c.name}:${c.was}>${c.now}`)).toEqual(["Eggs:half>low"]);
+    expect(s.wentUp.map((c) => `${c.name}:${c.was}>${c.now}`)).toEqual(["Ketchup:low>full"]);
+    expect(s.other.map((c) => c.name)).toEqual(["Baby spinach"]);
+    expect(s.shopping).toBe(after.items.filter((i) => i.level === "low" || i.level === "out").length);
   });
 });

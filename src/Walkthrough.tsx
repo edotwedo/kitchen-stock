@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CountReport, countSummary } from "./CountReport";
 import { bySpot } from "./logic";
 import { saveItem } from "./store";
 import { LEVELS, type Household, type Item, type Level } from "./types";
@@ -16,6 +17,7 @@ export function Walkthrough({ h, loc, onClose }: { h: Household; loc: string; on
   const [order] = useState(() => h.items.filter((i) => i.loc === loc).sort(bySpot(byName, h)).map((i) => i.id));
   const [at, setAt] = useState(0);
   const before = useRef(new Map<string, Item>());
+  const [report, setReport] = useState(false);
   // What each changed item looked like before the count (for one Undo), leaving out any set back to where it was.
   const changedFrom = () => [...before.current.values()].filter((b) => h.items.find((i) => i.id === b.id)?.level !== b.level);
   const finish = () => onClose(changedFrom(), at >= order.length);
@@ -62,6 +64,9 @@ export function Walkthrough({ h, loc, onClose }: { h: Household; loc: string; on
             <p className="big">All counted.</p>
             <p className="sub">{changed ? `${changed} ${changed === 1 ? "item" : "items"} changed. Anything low or out is on the shopping list.` : "Nothing changed. Everything is where you left it."}</p>
             <div className="actions">
+              <button className="btn" type="button" onClick={() => setReport(true)}>
+                Print summary
+              </button>
               <div className="right">
                 <button className="btn primary" type="button" onClick={finish}>
                   Done
@@ -97,6 +102,7 @@ export function Walkthrough({ h, loc, onClose }: { h: Household; loc: string; on
           </>
         )}
       </div>
+      {report && <CountReport h={h} s={countSummary(h, loc, changedFrom(), order.length)} onClose={() => setReport(false)} />}
     </div>
   );
 }
