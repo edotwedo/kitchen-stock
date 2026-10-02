@@ -565,6 +565,28 @@ export async function setMemberRole(userId: string, role: Member["role"]): Promi
   return null;
 }
 
+/**
+ * Delete this person's account for good (database update 0006): kitchens only they used are
+ * deleted, shared ones are handed on, then their sign-in is removed and this device forgets
+ * everything it saved.
+ */
+export async function deleteAccount(): Promise<string | null> {
+  if (!supabase || !app.userId) return "Sign in first.";
+  const { error } = await supabase.rpc("delete_my_account");
+  if (missingUpdate(error)) return "Account deletion isn't switched on yet (database update 0006). Try again later.";
+  if (error) return "Couldn't delete your account. Check your connection and try again.";
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i) ?? "");
+    for (const k of keys) if (k.startsWith("ks-")) localStorage.removeItem(k);
+  } catch {
+    /* nothing more to clear */
+  }
+  // The sign-in no longer exists; signing out just clears it from this device.
+  await supabase.auth.signOut().catch(() => {});
+  return null;
+}
+
 /** Remove someone (owners only), or leave the kitchen yourself when no one is given. */
 export async function removeMember(userId?: string): Promise<string | null> {
   if (!supabase || !app.kitchenId) return "Sign in first.";

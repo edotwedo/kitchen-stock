@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createInvite, createKitchen, deviceList, joinKitchen, listMembers, openKitchen, removeMember, sendCode, setMemberRole, signOut, startDemo, verifyCode, type AppState, type Member } from "./store";
+import { createInvite, createKitchen, deleteAccount, deviceList, joinKitchen, listMembers, openKitchen, removeMember, sendCode, setMemberRole, signOut, startDemo, verifyCode, type AppState, type Member } from "./store";
 import { DEFAULT_FREEZER_DAYS, type Household } from "./types";
 
 const EMPTY_KITCHEN: Household = {
@@ -124,6 +124,7 @@ export function NoKitchen({ email }: { email: string | null }) {
         <button className="linkbtn" type="button" onClick={() => void signOut()}>
           Sign out
         </button>
+        <TwoTap label="Delete my account" confirm="Tap again to delete it for good" disabled={busy} onConfirm={() => void run(deleteAccount)} />
       </main>
     </div>
   );
@@ -207,6 +208,10 @@ export function Sharing({ app }: { app: AppState }) {
         <button className="btn" type="button" onClick={() => void signOut()}>
           Sign out
         </button>
+      </div>
+      <div className="menu">
+        <span className="hint small">Delete your account for good: kitchens only you use are deleted with everything in them; shared kitchens stay with the others (if you're the only owner, the person who joined next becomes owner).</span>
+        <TwoTap label="Delete my account" confirm="Tap again to delete it for good" disabled={busy} onConfirm={() => act(deleteAccount)} />
       </div>
     </>
   );
