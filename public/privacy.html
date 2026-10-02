@@ -115,7 +115,7 @@ footer { margin-top: 56px; padding: 40px 0 56px; border-top: 1px solid var(--lin
     <h2>What stays on your phone</h2>
     <ul>
       <li><b>A copy of your kitchen.</b> The app keeps a copy of your list on the device so it opens fast and works with no signal. Changes made offline wait on the phone until you're back online. If you use the app without signing in (web app only), your list lives only on that device.</li>
-      <li><b>Camera.</b> The phone app uses the camera only to read barcodes, and only while the scanner is open. The web app can read a grocery receipt from a photo you take or pick; the text is read on your phone and the photo is never uploaded. The first time you read a receipt, the web app downloads the free text-reading program it needs (about 10 MB) from a public file server (jsDelivr). Only the download request goes out, not your photo.</li>
+      <li><b>Camera.</b> Both apps use the camera to read barcodes, only while the scanner is open; the video stays on your device. If your browser has no barcode reader of its own, the web app downloads a small one (about 1 MB) from a public file server (jsDelivr) the first time. The web app can also read a grocery receipt from a photo you take or pick; the text is read on your phone and the photo is never uploaded. The first time you read a receipt, the web app downloads the free text-reading program it needs (about 10 MB) from a public file server (jsDelivr). Only the download request goes out, not your photo.</li>
       <li><b>Phone app reminders.</b> In the Android and iPhone app, reminders are worked out and scheduled on the phone itself. Nothing about them is sent to us.</li>
       <li><b>The sample kitchen.</b> "Try the sample kitchen" uses made-up food and saves nothing, on your phone or anywhere else.</li>
     </ul>
@@ -130,7 +130,7 @@ footer { margin-top: 56px; padding: 40px 0 56px; border-top: 1px solid var(--lin
         <tr><td>Open Food Facts</td><td>A free, public product database. When you scan a barcode, the app looks it up there to fill in the name, size and allergens</td><td>Only the barcode number (and, like any website, your IP address). Not your email or your kitchen</td></tr>
         <tr><td>Cloudflare</td><td>Hosts the web app and this page</td><td>Standard web request details, such as IP address and browser type</td></tr>
         <tr><td>Your phone's notification service (Apple, Google, or your browser's maker)</td><td>Delivers reminders, if you turn them on in the web app</td><td>The reminder, which lists items that need using or buying. It's encrypted on the way</td></tr>
-        <tr><td>Google Fonts and jsDelivr</td><td>The web app loads its typefaces from Google Fonts and, for receipt reading only, the text-reading program from jsDelivr</td><td>Standard web request details, such as IP address</td></tr>
+        <tr><td>Google Fonts and jsDelivr</td><td>The web app loads its typefaces from Google Fonts and, only when you read a receipt or scan a barcode, the reading programs from jsDelivr</td><td>Standard web request details, such as IP address</td></tr>
       </tbody>
     </table>
     <p>These services may store data in the United States or other countries.</p>

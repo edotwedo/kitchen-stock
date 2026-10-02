@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { suggestFlags } from "./flagLibrary";
 import { DayDot } from "./DayDot";
+import { ScanSheet } from "./ScanSheet";
 import { dayOf, fmtDate } from "./format";
 import { addDays, toIso } from "./logic";
 import { alreadyHave, pastMatches } from "./quickAdd";
@@ -26,6 +27,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
   const [note, setNote] = useState(it?.note ?? "");
   const [flags, setFlags] = useState<string[]>(it?.flags ?? []);
   const [armed, setArmed] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   const frozen = h.locations.find((l) => l.key === loc)?.kind === "freezer";
@@ -35,10 +37,11 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
 
   useEffect(() => {
     if (!it) nameRef.current?.focus();
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // While the scanner is open, Escape closes the scanner, not this sheet.
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && !scanning && onClose();
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
-  }, [it, onClose]);
+  }, [it, onClose, scanning]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +100,14 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
           <div className="fields">
             <label className="field full">
               Item
-              <input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off" placeholder="e.g. Ground beef" />
+              <span className="name-row">
+                <input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off" placeholder="e.g. Ground beef" />
+                {!it && (
+                  <button type="button" className="btn small" onClick={() => setScanning(true)} aria-label="Scan a barcode">
+                    Scan
+                  </button>
+                )}
+              </span>
             </label>
             {past.length > 0 && (
               <div className="field full">
@@ -241,6 +251,20 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
             </div>
           </div>
         </form>
+        {scanning && (
+          <ScanSheet
+            h={h}
+            onClose={() => setScanning(false)}
+            onFound={(p) => {
+              setScanning(false);
+              setName(p.name);
+              if (p.qty) setQty(p.qty);
+              if (p.flagIds.length) setFlags((f) => [...new Set([...f, ...p.flagIds])]);
+              const where = p.kind && h.locations.find((l) => l.kind === p.kind);
+              if (where && !target.loc) setLoc(where.key);
+            }}
+          />
+        )}
       </div>
     </div>
   );
