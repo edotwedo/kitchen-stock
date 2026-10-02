@@ -627,6 +627,12 @@ if (supabase) {
   supabase.auth.onAuthStateChange((event, session) => {
     if (!session) {
       if (channel) void supabase!.removeChannel(channel);
+      // While the sample kitchen is open, leave it alone; Exit then lands on sign-in.
+      if (app.demo) {
+        beforeDemo = { status: "signed-out", household: null, kitchenId: null, cloud: true };
+        set({ email: null, userId: null, kitchens: [] });
+        return;
+      }
       set({ status: "signed-out", email: null, userId: null, kitchens: [], kitchenId: null, household: null });
       return;
     }
