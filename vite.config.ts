@@ -30,9 +30,11 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
+        // The organizers page's screenshots load from the network; the app doesn't need them offline.
+        globIgnores: ["organizers/**"],
         navigateFallback: "/index.html",
-        // The landing page and privacy policy are their own pages, not the app.
-        navigateFallbackDenylist: [/^\/about/, /^\/privacy/],
+        // The landing page, privacy policy and organizers page are their own pages, not the app.
+        navigateFallbackDenylist: [/^\/about/, /^\/privacy/, /^\/organizers/],
         // Shows reminder notifications and opens the right list when one is tapped.
         importScripts: ["push-sw.js"],
         runtimeCaching: [

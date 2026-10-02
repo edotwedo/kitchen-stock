@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitchen Stock for professional organizers</title>
+<meta name="description" content="Set up a client's kitchen in Kitchen Stock during the organizing job and hand it over, so the system you built keeps going.">
+<meta name="theme-color" content="#13263b">
+<link rel="icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #f4f5f2; --surface: #ffffff; --sunk: #eceee9; --ink: #13263b; --muted: #5d6874; --line: #dde1dc;
+  --full: #00765a; --half: #0067a3; --low: #c98400; --out: #b84300; --focus: #0067a3;
+  --day-0: #202020; --day-1: #1f5fbf; --day-2: #f2c514; --day-3: #c8202f; --day-4: #7a4a24; --day-5: #2b8a3e; --day-6: #ef7d16;
+  --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --shadow: 0 1px 2px rgba(19,38,59,.06), 0 8px 24px rgba(19,38,59,.07);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161c; --surface: #19222b; --sunk: #131b22; --ink: #e9eef2; --muted: #9ba6b0; --line: #2a3540;
+    --full: #3fc29a; --half: #56b4e9; --low: #f0b43c; --out: #f08a4b; --focus: #56b4e9;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161c; --surface: #19222b; --sunk: #131b22; --ink: #e9eef2; --muted: #9ba6b0; --line: #2a3540;
+  --full: #3fc29a; --half: #56b4e9; --low: #f0b43c; --out: #f08a4b; --focus: #56b4e9;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--body); }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: .95; margin: 0; letter-spacing: .3px; }
+h1 { font-size: clamp(54px, 11vw, 104px); text-transform: uppercase; text-wrap: balance; }
+h2 { font-size: clamp(36px, 6vw, 54px); text-transform: uppercase; }
+h3 { font-size: 26px; text-transform: uppercase; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+
+header.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+.brand { display: flex; align-items: center; gap: 10px; font: 800 24px/1 var(--display); text-transform: uppercase; text-decoration: none; }
+.brand img { width: 32px; height: 32px; border-radius: 8px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 12px;
+  font: 700 16px var(--body); text-decoration: none; border: 1.5px solid var(--ink); }
+.btn.primary { background: var(--ink); color: var(--bg); }
+.btn.small { min-height: 40px; padding: 0 16px; font-size: 15px; }
+
+.hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 40px 0 72px; }
+.hero .lede { font-size: 20px; margin: 22px 0 28px; max-width: 30em; }
+.hero .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero .note { margin-top: 14px; font-size: 14px; }
+
+/* The memorable thing: a Use first list, the way the app shows it, with day dots on the freezer dates. */
+.card { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding: 18px 18px 8px; }
+.card .head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 2px 10px; border-bottom: 1px solid var(--line); }
+.card .head b { font: 800 26px/1 var(--display); text-transform: uppercase; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row .name { font-weight: 600; }
+.row .meta { grid-column: 1; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.row .tag { grid-row: 1 / span 2; grid-column: 2; align-self: center; font: 700 13px var(--body); padding: 5px 10px; border-radius: 6px; border: 1.5px solid currentColor; }
+.tag.out { color: var(--out); } .tag.low { color: var(--low); } .tag.half { color: var(--half); }
+.dot { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; font: 800 8px/1 var(--body); color: #fff; letter-spacing: 0; flex: none; }
+.dot.d2 { color: #1b1b1b; }
+
+section { padding: 64px 0; border-top: 1px solid var(--line); }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 36px 48px; margin-top: 36px; }
+.grid p { margin-top: 10px; color: var(--muted); max-width: 32em; }
+
+.clock { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; }
+.clock div { background: var(--surface); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+.clock b { display: block; font: 800 64px/1 var(--display); }
+.clock span { display: block; margin-top: 6px; font-weight: 600; }
+.clock small { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+.install { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 32px; }
+.install div { background: var(--surface); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); }
+.install ol { margin: 14px 0 0; padding-left: 22px; }
+.install li { margin: 8px 0; }
+
+footer { padding: 40px 0 56px; border-top: 1px solid var(--line); font-size: 15px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; gap: 36px; padding-top: 16px; }
+  .grid, .install, .clock { grid-template-columns: 1fr; }
+  .clock b { font-size: 52px; }
+  section { padding: 48px 0; }
+}
+/* For organizers: the same page, plus a phone screenshot, numbered visit steps and a printed-summary example. */
+.shot { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; border-radius: 26px; border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--surface); }
+.lead { margin-top: 14px; max-width: 36em; }
+
+.visits { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 16px; }
+.visit { background: var(--surface); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); display: grid; grid-template-columns: 56px 1fr; gap: 0 18px; }
+.visit .n { font: 800 56px/.9 var(--display); color: var(--muted); }
+.visit h3 { padding-top: 4px; }
+.visit ul { margin: 12px 0 0; padding-left: 20px; }
+.visit li { margin: 8px 0; }
+.visit .who { margin-top: 6px; font-size: 15px; }
+
+.pair { display: grid; grid-template-columns: 1fr .8fr; gap: 48px; align-items: center; margin-top: 32px; }
+.pair .grid { grid-template-columns: 1fr; margin-top: 0; gap: 28px; }
+
+/* An example of the one-page count summary the app prints. The real one prints in blue ink. */
+.paper { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 24px; color: var(--half); max-width: 440px; width: 100%; justify-self: center; }
+.paper .ph { border-bottom: 2px solid currentColor; padding-bottom: 10px; }
+.paper .ph b { display: block; font: 800 30px/1 var(--display); text-transform: uppercase; }
+.paper .ph span { font-size: 14px; }
+.paper .cl { font-size: 15px; margin: 12px 0 4px; }
+.paper h4 { margin: 16px 0 4px; font: 800 20px/1 var(--display); text-transform: uppercase; }
+.paper ul { list-style: none; margin: 0; padding: 0; font-size: 15px; }
+.paper li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.paper li span { white-space: nowrap; }
+.paper li b { font-weight: 400; }
+.paper small { opacity: .8; }
+
+.contact { background: var(--surface); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); margin-top: 28px; max-width: 40em; }
+.contact p + p { margin-top: 12px; }
+.contact .addr { font-weight: 700; font-size: 19px; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .pair { grid-template-columns: 1fr; gap: 32px; }
+  .shot { max-width: 290px; }
+  .visit { grid-template-columns: 1fr; padding: 20px; }
+  .visit .n { font-size: 44px; }
+  .visit h3 { padding-top: 6px; }
+  .paper { padding: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/about.html"><img src="/pwa-64x64.png" alt="">Kitchen Stock</a>
+    <a class="btn small" href="/?demo">Try it</a>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <h1>Hand off a kitchen that stays organized</h1>
+        <p class="lede">You make the kitchen work. Kitchen Stock helps it stay that way: a live list of what's in the fridge, freezer and pantry that your client keeps using on their phone after you leave, so the system you built doesn't drift back.</p>
+        <div class="ctas">
+          <a class="btn primary" href="/?demo">Try the sample kitchen</a>
+          <a class="btn" href="#visits">How it works</a>
+        </div>
+        <p class="note muted">No app store and no sign-up to try it. The sample kitchen saves nothing.</p>
+      </div>
+      <img class="shot" src="organizers/use-first.png" width="1000" height="1800" alt="The app's Use first list in the sample kitchen: sour cream past its date, leftover chili to use today, pork chops marked Not for Sam.">
+    </div>
+
+    <section id="visits">
+      <h2>How it works, visit by visit</h2>
+      <p class="muted lead">Everything happens on your phone and theirs. The app opens from a link and can be added to the home screen on iPhone and Android.</p>
+      <ol class="visits">
+        <li class="visit">
+          <span class="n" aria-hidden="true">1</span>
+          <div>
+            <h3>Before the first visit</h3>
+            <ul>
+              <li>Open the app and sign in with your email. There's no password; the app emails you a way in.</li>
+              <li>In <b>Settings</b>, under <b>Sharing</b>, tap <b>Set up another kitchen</b> and name it for the client ("The Garcias' kitchen"). It opens right away with a fridge, a freezer and a pantry to start from.</li>
+              <li>Every client gets their own kitchen, with its own list and its own people. Switch between them under <b>Your other kitchens</b>.</li>
+            </ul>
+          </div>
+        </li>
+        <li class="visit">
+          <span class="n" aria-hidden="true">2</span>
+          <div>
+            <h3>During the visit</h3>
+            <ul>
+              <li><b>Places.</b> In <b>Settings</b>, under <b>Places</b>, make the list match the real kitchen: the garage fridge, the chest freezer, the tall cabinet. Put each place's shelf spots in the order you walk them: top shelf, door, crisper.</li>
+              <li><b>People and food rules.</b> Add each person and what they avoid or limit: pork, gluten, peanuts, added sugar, anything. Matching items get flagged, so "Not for Sam" shows up on the pork chops.</li>
+              <li><b>Items.</b> Add things as you put them away, or scan the barcode to fill in the name and size. Freezer items get a best-quality date from how they're wrapped.</li>
+              <li><b>Count it.</b> On each place, tap <b>Count</b>. It walks you through spot by spot with four big buttons: Full, Half, Low, Out.</li>
+            </ul>
+          </div>
+        </li>
+        <li class="visit">
+          <span class="n" aria-hidden="true">3</span>
+          <div>
+            <h3>Hand it over</h3>
+            <ul>
+              <li>In <b>Settings</b>, under <b>Sharing</b>, tap <b>Invite an owner</b>. You get a code that works once, for 7 days.</li>
+              <li>Your client opens the app on their phone, signs in with their email and types the code under <b>Or join with a code</b>. The kitchen is now theirs, and they can invite the rest of the household.</li>
+              <li>Stay on for check-ins and recounts, or leave. A kitchen always keeps at least one owner, so it's never left without one.</li>
+            </ul>
+          </div>
+        </li>
+        <li class="visit">
+          <span class="n" aria-hidden="true">4</span>
+          <div>
+            <h3>Between visits</h3>
+            <p class="who muted">Your client keeps it going in a few taps a day.</p>
+            <ul>
+              <li>Tapping an item down to low or out puts it on the <b>Shopping</b> list.</li>
+              <li>Back from the store, they tick what they bought and it's all restocked at once, or they take a photo of the receipt.</li>
+              <li><b>Use first</b> shows what's getting old, oldest first.</li>
+              <li>If they turn on reminders, Saturday morning brings the shopping list and a nudge about any place that hasn't been counted in two weeks.</li>
+              <li>If you stayed on, you see the same live list from your phone.</li>
+            </ul>
+          </div>
+        </li>
+        <li class="visit">
+          <span class="n" aria-hidden="true">5</span>
+          <div>
+            <h3>Come back for a recount</h3>
+            <ul>
+              <li>Each place shows when it was last counted ("Last counted 3 weeks ago"), so you know where to start.</li>
+              <li>Count it again. At the end, tap <b>Print summary</b> for a one-page "what changed" sheet.</li>
+              <li>Hand it over on paper, or choose <b>Save as PDF</b> in the print window and send it.</li>
+            </ul>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>A summary of every recount</h2>
+      <div class="pair">
+        <div>
+          <p class="muted" style="max-width:32em">After each count, the app makes a one-page sheet for that place: what ran out, what's running low, what got used and what was restocked, with how many things are on the shopping list. It prints in blue ink, or saves as a PDF.</p>
+          <p class="muted" style="max-width:32em;margin-top:14px">It shows the client what the visit did, and it gives you both something to look at when you talk about the next one.</p>
+        </div>
+        <div class="paper" aria-label="Example: a printed count summary">
+          <div class="ph"><b>Pantry: what changed</b><span>The Garcias' kitchen. Counted Oct 2.</span></div>
+          <p class="cl">24 items counted, 5 changed. 4 things are on the shopping list.</p>
+          <h4>Ran out</h4>
+          <ul><li>Coffee <span>low to out</span></li></ul>
+          <h4>Running low</h4>
+          <ul><li>Olive oil <span>half to low</span></li><li>Peanut butter <span>half to low</span></li></ul>
+          <h4>Used some</h4>
+          <ul><li><b>Rice <small>5 lb</small></b> <span>full to half</span></li></ul>
+          <h4>Restocked</h4>
+          <ul><li>Canned tomatoes <span>low to full</span></li></ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>What your client gets</h2>
+      <div class="pair">
+        <div class="grid">
+          <div><h3>Use first</h3><p>What to eat this week, oldest first, so food gets used instead of found.</p></div>
+          <div><h3>A shopping list that writes itself</h3><p>Anything marked low or out lands on the list, sorted by place. One tap restocks it after the store.</p></div>
+          <div><h3>A freezer clock</h3><p>Best-quality dates by how food is wrapped: 90 days in a freezer bag, a year vacuum-bagged, two years chamber-sealed.</p></div>
+          <div><h3>Food rules per person</h3><p>Allergies, pork, gluten, sugar, anything. Items get flagged so nobody has to remember.</p></div>
+          <div><h3>One list, every phone</h3><p>Shared live with the household, and it still works with no signal.</p></div>
+        </div>
+        <img class="shot" src="organizers/shopping.png" width="1000" height="1800" loading="lazy" alt="The app's Shopping list in the sample kitchen, grouped by fridge, freezer and pantry, with a Restock button for after the store.">
+      </div>
+    </section>
+
+    <section>
+      <h2>Why it fits your business</h2>
+      <div class="grid">
+        <div><h3>Something to leave behind</h3><p>The client keeps a working list of the kitchen you set up, on their own phone, so it stays organized after you go.</p></div>
+        <div><h3>A reason to check back</h3><p>You can stay on the kitchen and see how it's going. A place that hasn't been counted in weeks is a natural reason to get in touch.</p></div>
+        <div><h3>Repeat visits</h3><p>A recount with a printed summary of what changed is a simple, concrete thing to offer every season.</p></div>
+        <div><h3>Your client owns it</h3><p>Each household only ever sees its own kitchen. Nobody outside it, including your other clients, can see or change anything. Those rules are checked by automated tests.</p></div>
+      </div>
+      <p style="margin-top:32px"><a class="btn primary" href="/?demo">Try the sample kitchen</a></p>
+    </section>
+
+    <section id="pricing">
+      <h2>Pricing</h2>
+      <div class="contact">
+        <p>Pricing for organizers is still being set. If you'd like to use Kitchen Stock with your clients, or try it on a real job first, get in touch.</p>
+        <p class="addr">[CONTACT EMAIL]</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Made in Tacoma by a journeyman meat cutter who got tired of mystery bags at the bottom of the freezer.</span>
+    <span><a href="/about.html">About Kitchen Stock</a> &middot; <a href="/privacy.html">Privacy</a></span>
+  </footer>
+</div>
+</body>
+</html>
