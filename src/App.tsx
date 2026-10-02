@@ -14,6 +14,8 @@ import { byDue, bySpot, byLevelThenName, daysUntil, isFrozen, isReminderDue, isS
 import { mergeList } from "./merge";
 import { clearProblem, endDemo, exportJson, putAwayReceipt, replaceHousehold, restockItems, restoreItem, restoreItems, saveItem, snapshot, startDemo, undoReceipt, updateHousehold, useApp } from "./store";
 import { ReceiptSheet } from "./ReceiptSheet";
+import { sendShoppingList } from "./sendList";
+import { shoppingText } from "./shoppingText";
 import { StoreRun } from "./StoreRun";
 import { Walkthrough } from "./Walkthrough";
 import { DEFAULT_FREEZER_DAYS, type Household, type Item, type Level } from "./types";
@@ -254,6 +256,17 @@ export default function App() {
                 Restock
               </button>
             </div>
+          </div>
+        )}
+        {current.key === "shop" && !searching && current.count > 0 && (
+          <div className="cookbar">
+            <p>
+              <strong>Someone else shopping?</strong>
+              Send them the list by text or email.
+            </p>
+            <button className="btn" type="button" onClick={() => void sendShoppingList(shoppingText(h)).then((msg) => msg && toast(msg))}>
+              Send list
+            </button>
           </div>
         )}
         {current.key.startsWith("loc:") && !searching && current.count > 1 && (
