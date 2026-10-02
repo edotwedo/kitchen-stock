@@ -103,6 +103,25 @@ describe("sharing rules", () => {
     expect((await as(CAL, "select * from public.household_members($1)", [kitchen])).rows).toHaveLength(0);
   });
 
+  it("phone reminders: people only register, see and change their own phones, for kitchens they're in", async () => {
+    const phone = (endpoint: string, user: string) =>
+      as(user, "insert into public.push_subscriptions (endpoint, household_id, p256dh, auth) values ($1, $2, 'key', 'secret')", [endpoint, kitchen]);
+    await phone("https://push.example/ann-phone", ANN);
+    await phone("https://push.example/ben-phone", BEN);
+    // A stranger can't sign a phone up for someone else's kitchen, or pretend to be someone else.
+    expect(await fails(CAL, "insert into public.push_subscriptions (endpoint, household_id, p256dh, auth) values ('https://push.example/cal', $1, 'k', 's')", [kitchen])).toMatch(/row-level security/);
+    expect(await fails(BEN, "insert into public.push_subscriptions (endpoint, user_id, household_id, p256dh, auth) values ('https://push.example/fake', $1, $2, 'k', 's')", [ANN, kitchen])).toMatch(/row-level security/);
+    // Everyone sees only their own phones, even in the same kitchen.
+    expect((await as<{ endpoint: string }>(BEN, "select endpoint from public.push_subscriptions")).rows).toEqual([{ endpoint: "https://push.example/ben-phone" }]);
+    expect((await as(CAL, "select * from public.push_subscriptions")).rows).toHaveLength(0);
+    expect((await as(BEN, "update public.push_subscriptions set time_zone = 'UTC' where endpoint = 'https://push.example/ann-phone' returning endpoint")).rows).toHaveLength(0);
+    expect((await as(BEN, "delete from public.push_subscriptions where endpoint = 'https://push.example/ann-phone' returning endpoint")).rows).toHaveLength(0);
+    expect((await as(ANN, "select endpoint from public.push_subscriptions")).rows).toHaveLength(1);
+    // And can't move their phone into a kitchen they're not in.
+    const other = (await as<{ id: string }>(CAL, "insert into public.households (name) values ('Cal''s') returning id")).rows[0].id;
+    expect(await fails(BEN, "update public.push_subscriptions set household_id = $1 where endpoint = 'https://push.example/ben-phone'", [other])).toMatch(/row-level security/);
+  });
+
   it("handing a kitchen over: the owner promotes, can't leave while the only owner, then can", async () => {
     expect(await fails(ANN, "select public.leave_household($1)", [kitchen])).toMatch(/at least one owner/);
     await as(ANN, "select public.set_member_role($1, $2, 'owner')", [kitchen, BEN]);
