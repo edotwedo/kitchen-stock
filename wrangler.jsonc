@@ -1,0 +1,11 @@
+// Cloudflare settings for Kitchen Stock: a static site (the built app in dist/) served by Cloudflare.
+// Build with `npm run build` (reads .env.local), then deploy with `npx wrangler deploy`. See docs/HOSTING.md.
+{
+  "name": "kitchen-stock",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    // Any address that isn't a file opens the app (it handles its own screens).
+    "not_found_handling": "single-page-application"
+  }
+}
