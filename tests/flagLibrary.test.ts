@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { HAS_SEED, seedJson } from "./seedFile";
 import { FLAG_LIBRARY, findCandidates, mightContain } from "../src/flagLibrary";
 import { addFlag, setRule, addPerson, ruleFor, tagItems } from "../src/household";
 import { importHousehold } from "../src/importData";
@@ -37,10 +37,9 @@ describe("flag library hints", () => {
   });
 });
 
-const SEED = `${process.cwd()}/kitchen-seed-data.json`;
-describe.skipIf(!existsSync(SEED))("flag review on the seed", () => {
+describe.skipIf(!HAS_SEED)("flag review on the seed", () => {
   it("finds pork candidates beyond the 6 already tagged, and tagging them sticks", () => {
-    let h = importHousehold(JSON.parse(readFileSync(SEED, "utf8")));
+    let h = importHousehold(seedJson());
     const pork = h.flags.find((f) => f.id === "pork")!;
     const found = findCandidates(h.items, pork).map((i) => i.name);
     expect(found).toContain("Meatballs, vacuum-sealed"); // note says "check for pork"

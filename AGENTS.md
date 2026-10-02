@@ -16,7 +16,7 @@ read that repo, these are the rules that matter:
 
 ```bash
 npm ci
-npm test            # Vitest. print, reminders and seed tests need Phil's private kitchen-seed-data.json; without it they fail at load (known)
+npm test            # Vitest. Tests on Phil's private kitchen-seed-data.json skip when it isn't there (it never goes on GitHub)
 npm run typecheck   # tsc -b
 ```
 

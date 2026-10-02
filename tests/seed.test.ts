@@ -1,15 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { HAS_SEED, seedJson } from "./seedFile";
 import { importHousehold } from "../src/importData";
 import { dueDate, isShopping, isUseFirst, nextLevel } from "../src/logic";
 
 // The real household seed is private and not in the repo. These tests run
 // when it's present locally (kitchen-seed-data.json) and skip otherwise.
-const SEED = `${process.cwd()}/kitchen-seed-data.json`;
 const COUNTED = new Date("2026-09-30T12:00:00");
 
-describe.skipIf(!existsSync(SEED))("seed data (Sept 30, 2026 count)", () => {
-  const h = importHousehold(JSON.parse(readFileSync(SEED, "utf8")));
+describe.skipIf(!HAS_SEED)("seed data (Sept 30, 2026 count)", () => {
+  const h = importHousehold(seedJson());
 
   it("imports every item", () => {
     expect(h.items).toHaveLength(214);

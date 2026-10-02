@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { HAS_SEED, seedJson } from "./seedFile";
 import { localClock, localDate, morningNotice, shoppingNotice, type ReminderItem, type ReminderKitchen } from "../supabase/functions/_shared/reminders";
 import { toRow } from "../src/cloud";
 import { importHousehold } from "../src/importData";
@@ -51,9 +51,8 @@ describe("clock", () => {
   });
 });
 
-const SEED = `${process.cwd()}/kitchen-seed-data.json`;
-describe.skipIf(!existsSync(SEED))("on the real list", () => {
-  const h = importHousehold(JSON.parse(readFileSync(SEED, "utf8")));
+describe.skipIf(!HAS_SEED)("on the real list", () => {
+  const h = importHousehold(seedJson());
   const rows = h.items.map((i) => toRow("hh", i));
   const k: ReminderKitchen = { name: h.name, settings: { locations: h.locations, freezerDays: h.freezerDays } };
 

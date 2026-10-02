@@ -1,12 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { HAS_SEED, seedJson } from "./seedFile";
 import { importHousehold } from "../src/importData";
 import { printPages } from "../src/PrintView";
 
-const SEED = `${process.cwd()}/kitchen-seed-data.json`;
 
-describe.skipIf(!existsSync(SEED))("print sheets from the seed", () => {
-  const h = importHousehold(JSON.parse(readFileSync(SEED, "utf8")));
+describe.skipIf(!HAS_SEED)("print sheets from the seed", () => {
+  const h = importHousehold(seedJson());
   const all = h.locations.map((l) => l.key);
 
   it("makes one inventory page per place with every item, A to Z", () => {
