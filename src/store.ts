@@ -176,12 +176,21 @@ function loadOutbox(id: string): Outbox {
   }
 }
 
-/** Save items. A database without update 0004 has no spot column: save the rest, and say so. */
+// Item columns added by later database updates. Until an update is run, saving leaves that column out.
+const LATER_COLUMNS: Record<string, string> = { spot: "Shelf spots need database update 0004", buy: "Shopping notes need database update 0005" };
+
+/** Save items. On a database missing a newer column, save everything else and say which update to run. */
 async function upsertItems(rows: ItemRow[]): Promise<{ error: unknown; status?: number }> {
-  const first = await supabase!.from("items").upsert(rows);
-  if (!first.error || !missingUpdate(first.error) || !rows.some((r) => "spot" in r)) return first;
-  set({ problem: "Shelf spots need database update 0004 in Supabase before they can be shared." });
-  return supabase!.from("items").upsert(rows.map(({ spot: _spot, ...r }) => r));
+  let send = rows;
+  for (let tries = 0; ; tries++) {
+    const res = await supabase!.from("items").upsert(send);
+    if (!res.error || !missingUpdate(res.error) || tries >= 2) return res;
+    const msg = (res.error as { message?: string }).message ?? "";
+    const missing = Object.keys(LATER_COLUMNS).filter((c) => send.some((r) => c in r) && (msg.includes(`'${c}'`) || !/column/i.test(msg)));
+    if (!missing.length) return res;
+    set({ problem: missing.map((c) => LATER_COLUMNS[c]).join(". ") + " in Supabase before they can be shared." });
+    send = send.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !missing.includes(k))) as unknown as ItemRow);
+  }
 }
 
 /** Send what's waiting. Returns true when nothing is left waiting. */
@@ -274,7 +283,7 @@ export function restockItems(ids: string[], today = new Date()) {
   const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   apply({
     ...h,
-    items: h.items.map((i) => (want.has(i.id) ? { ...i, level: "full", remindOn: "", ...(freezers.has(i.loc) ? { frozenOn: day } : {}), updated } : i)),
+    items: h.items.map((i) => (want.has(i.id) ? { ...i, level: "full", remindOn: "", ...(i.buy ? { buy: "" } : {}), ...(freezers.has(i.loc) ? { frozenOn: day } : {}), updated } : i)),
   });
 }
 

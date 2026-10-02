@@ -497,3 +497,5 @@ html.printing #root { display: none; }
 /* ---------- count summary (printed) ---------- */
 .count-report .count-line { margin: 4px 0 6px; font-size: 13px; }
 .count-report .what small { opacity: .8; }
+.tag.buy { background: color-mix(in srgb, var(--half) 14%, transparent); color: var(--half); }
+.shop-group .what small { display: block; font-size: 10px; opacity: .85; }

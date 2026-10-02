@@ -15,7 +15,7 @@ export type PrintKind = "inventory" | "shopping";
 export interface PrintPage {
   place: string;
   frozen: boolean;
-  rows: { name: string; qty: string; level: string; date: string; note: string }[];
+  rows: { name: string; qty: string; level: string; date: string; note: string; buy: string }[];
 }
 
 export function printPages(h: Household, kind: PrintKind, places: string[]): PrintPage[] {
@@ -31,7 +31,7 @@ export function printPages(h: Household, kind: PrintKind, places: string[]): Pri
         rows: items.map((i: Item) => {
           const due = dueDate(i, h);
           const date = isFrozen(i, h) ? (i.frozenOn ? fmtDate(i.frozenOn, true) : "") : due ? fmtDate(due.date, true) : "";
-          return { name: i.name, qty: i.qty, level: i.level, date, note: i.note };
+          return { name: i.name, qty: i.qty, level: i.level, date, note: i.note, buy: i.buy?.trim() ?? "" };
         }),
       };
     })
@@ -104,7 +104,10 @@ export function PrintView({ h, onClose }: { h: Household; onClose: () => void })
                   {p.rows.map((r, n) => (
                     <li key={n}>
                       <span className="box" />
-                      <span className="what">{r.name}</span>
+                      <span className="what">
+                        {r.name}
+                        {r.buy && <small>{r.buy}</small>}
+                      </span>
                       <span className="lvl">{r.level === "out" ? "out" : "low"}</span>
                     </li>
                   ))}

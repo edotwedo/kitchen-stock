@@ -161,7 +161,7 @@ export default function App() {
   };
   const restock = (i: Item) => {
     // A restocked freezer item is a new package, so its quality clock starts today.
-    saveItem(i.id, { level: "full", remindOn: "", ...(isFrozen(i, h) ? { frozenOn: toIso(today) } : {}) });
+    saveItem(i.id, { level: "full", remindOn: "", ...(i.buy ? { buy: "" } : {}), ...(isFrozen(i, h) ? { frozenOn: toIso(today) } : {}) });
     toast("Restocked " + i.name, () => restoreItem(i));
   };
 
@@ -368,7 +368,8 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
   const avoiders = h.people.filter((p) => p.avoids.some((a) => i.flags.includes(a)));
   const limiters = h.people.filter((p) => !avoiders.includes(p) && p.limits.some((a) => i.flags.includes(a)));
   const spot = i.spot?.trim();
-  const hasMeta = (props.showLoc && loc) || spot || dot || tag || flags.length || i.note;
+  const buy = i.buy?.trim();
+  const hasMeta = (props.showLoc && loc) || spot || dot || tag || flags.length || i.note || buy;
   return (
     <div className={"row " + i.level}>
       <Gauge item={i} onStep={props.onStep} />
@@ -389,6 +390,7 @@ function Row(props: { item: Item; h: Household; today: Date; showLoc: boolean; s
             ))}
             {avoiders.length > 0 && <span className="tag avoid">Not for {avoiders.map((p) => p.name).join(" or ")}</span>}
             {limiters.length > 0 && <span className="tag limit">Limit for {limiters.map((p) => p.name).join(" and ")}</span>}
+            {buy && <span className="tag buy">Get: {buy}</span>}
             {i.note && <span>{i.note}</span>}
           </div>
         )}

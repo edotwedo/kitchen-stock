@@ -17,6 +17,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
   const [loc, setLoc] = useState(it?.loc ?? target.loc ?? h.locations[0]?.key ?? "");
   const [qty, setQty] = useState(it?.qty ?? "");
   const [spot, setSpot] = useState(it?.spot ?? "");
+  const [buy, setBuy] = useState(it?.buy ?? "");
   const [level, setLevel] = useState<Level>(it?.level ?? "full");
   const [useBy, setUseBy] = useState(it?.useBy ?? "");
   const [remindOn, setRemindOn] = useState(it?.remindOn ?? "");
@@ -46,7 +47,9 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
     // A spot is only stored once one has been given; clearing it later stores "".
     const s = spot.trim();
     const spotField = s || it?.spot !== undefined ? { spot: s } : {};
-    saveItem(it?.id ?? null, { name: n, loc, qty: qty.trim(), level, useBy, remindOn, frozenOn: frozenDate, wrap, note: note.trim(), flags, ...spotField });
+    const b = buy.trim();
+    const buyField = b || it?.buy !== undefined ? { buy: b } : {};
+    saveItem(it?.id ?? null, { name: n, loc, qty: qty.trim(), level, useBy, remindOn, frozenOn: frozenDate, wrap, note: note.trim(), flags, ...spotField, ...buyField });
     onSaved((it ? "Saved " : "Added ") + n, it ? () => restoreItem(it) : undefined);
     onClose();
   };
@@ -160,6 +163,12 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
                 ))}
               </div>
             </div>
+            {(level === "low" || level === "out" || buy) && (
+              <label className="field full">
+                Note for the shopping list <span className="hint small">optional, cleared when it's restocked</span>
+                <input value={buy} onChange={(e) => setBuy(e.target.value)} maxLength={80} autoComplete="off" placeholder="e.g. oat milk, not regular" />
+              </label>
+            )}
 
             {frozen ? (
               <>

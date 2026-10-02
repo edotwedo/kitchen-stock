@@ -66,6 +66,7 @@ export function importHousehold(raw: unknown): Household {
       note: str(x.note),
       flags: itemFlags,
       ...(str(x.spot).trim() ? { spot: str(x.spot).trim() } : {}),
+      ...(str(x.buy).trim() ? { buy: str(x.buy).trim() } : {}),
       updated: str(x.updated) || new Date().toISOString(),
       by: str(x.by) || undefined,
     });

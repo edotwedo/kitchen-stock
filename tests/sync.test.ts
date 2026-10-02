@@ -14,6 +14,7 @@ const db = vi.hoisted(() => {
     session: null as null | { user: { id: string; email: string } },
     updated: false, // has database update 0002 been run?
     spots: false, // has database update 0004 been run?
+    buy: false, // has database update 0005 been run?
     members: [] as { user_id: string; email: string; role: string }[],
   };
   const missing = (what: string) => ({ error: { code: "PGRST202", message: `Could not find the function ${what}` }, data: null, status: 404 });
@@ -24,6 +25,8 @@ const db = vi.hoisted(() => {
     // Before database update 0004 there's no spot column.
     if (!state.spots && op === "upsert" && Array.isArray(payload) && payload.some((r) => "spot" in r))
       return Promise.resolve({ error: { code: "PGRST204", message: "Could not find the 'spot' column of 'items' in the schema cache" }, status: 400, data: null });
+    if (!state.buy && op === "upsert" && Array.isArray(payload) && payload.some((r) => "buy" in r))
+      return Promise.resolve({ error: { code: "PGRST204", message: "Could not find the 'buy' column of 'items' in the schema cache" }, status: 400, data: null });
     return Promise.resolve({ error: null, status: 200, data: null });
   };
   const offlineRead = { error: { message: "Failed to fetch" }, status: 0, data: null };
@@ -133,6 +136,19 @@ describe("syncing the shared list", () => {
     s.saveItem("milk", { spot: "Top shelf" });
     await settle();
     expect((db.state.sent[0].payload as Record<string, unknown>[])[0]).toMatchObject({ id: "milk", spot: "Top shelf" });
+  });
+
+  it("with 0004 run but not 0005, saves the spot and leaves out the shopping note, naming the right update", async () => {
+    const s = await freshStore();
+    await s.openKitchen("hh");
+    db.state.spots = true;
+    s.saveItem("milk", { level: "low", spot: "Door", buy: "oat milk" });
+    await settle();
+    const ups = db.state.sent.filter((x) => x.op === "upsert").map((x) => x.payload as Record<string, unknown>[]);
+    expect(ups.at(-1)![0]).toMatchObject({ id: "milk", spot: "Door" });
+    expect("buy" in ups.at(-1)![0]).toBe(false);
+    expect(s.snapshot().problem).toContain("update 0005");
+    expect(s.snapshot().problem).not.toContain("0004");
   });
 
   it("keeps changes made with no signal and sends them when back online", async () => {

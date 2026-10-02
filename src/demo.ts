@@ -67,7 +67,7 @@ export function sampleKitchen(today = new Date()): Household {
       item("Peanut butter", "pantry", "1 jar", "low", { flags: ["peanuts"] }),
       item("Black beans", "pantry", "4 cans", "full"),
       item("Olive oil", "pantry", "1 bottle", "half"),
-      item("Coffee", "pantry", "12 oz", "out"),
+      item("Coffee", "pantry", "12 oz", "out", { buy: "whole bean, the big bag" }),
       item("Maple syrup", "pantry", "bottle", "full", { flags: ["added-sugar"] }),
     ],
   };
