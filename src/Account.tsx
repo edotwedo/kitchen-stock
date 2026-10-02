@@ -189,6 +189,7 @@ export function Sharing({ app }: { app: AppState }) {
       {owner && <InviteMaker />}
 
       <NewKitchen />
+      <JoinAnother />
 
       {others.length > 0 && (
         <div className="menu">
@@ -221,6 +222,24 @@ export function Sharing({ app }: { app: AppState }) {
  * Start another kitchen from the same account: a client's, a second home, a cabin. The new one
  * opens right away, empty, with the usual three places; switch back under "Your other kitchens".
  */
+/** Already in a kitchen, and someone sent a code for another one (say, an organizer handing over a client's kitchen). */
+function JoinAnother() {
+  const [code, setCode] = useState("");
+  const { busy, error, run } = useBusy();
+  return (
+    <form className="menu" onSubmit={(e) => (e.preventDefault(), void run(() => joinKitchen(code)))}>
+      <label className="field">
+        Join another kitchen with a code
+        <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="a1b2c3d4e5f6" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+      </label>
+      <button className="btn" type="submit" disabled={busy || code.trim().length < 6}>
+        {busy ? "Joining…" : "Join kitchen"}
+      </button>
+      {error && <p className="formerror">{error}</p>}
+    </form>
+  );
+}
+
 function NewKitchen() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
