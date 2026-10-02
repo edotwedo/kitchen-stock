@@ -1,11 +1,16 @@
-// Cloudflare settings for Kitchen Stock: a static site (the built app in dist/) served by Cloudflare.
-// Build with `npm run build` (reads .env.local), then deploy with `npx wrangler deploy`. See docs/HOSTING.md.
+// Cloudflare settings for Kitchen Stock: the built app in dist/ served by Cloudflare, plus a
+// small script (worker/index.js) whose only job is a daily Supabase keep-alive.
+// Deploy with `npm run deploy` (builds, reads .env.local, deploys). See docs/HOSTING.md.
 {
   "name": "kitchen-stock",
+  "main": "worker/index.js",
   "compatibility_date": "2026-09-01",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     // Any address that isn't a file opens the app (it handles its own screens).
     "not_found_handling": "single-page-application"
-  }
+  },
+  // Every day at 8:23 a.m. UTC (1:23 a.m. in Tacoma).
+  "triggers": { "crons": ["23 8 * * *"] }
 }

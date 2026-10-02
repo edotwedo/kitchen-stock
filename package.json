@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator",
+    "deploy": "node tools/deploy.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
