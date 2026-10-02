@@ -46,7 +46,7 @@ const db = vi.hoisted(() => {
         single: () => {
           state.sent.push({ table, op: "insert", payload: row });
           if (!state.updated && "role" in row) return Promise.resolve({ error: { code: "PGRST204", message: "Could not find the 'role' column of 'invites'" }, data: null });
-          return Promise.resolve({ error: null, data: { code: "a1b2c3d4e5f6" } });
+          return Promise.resolve({ error: null, data: table === "households" ? { id: "hh2" } : { code: "a1b2c3d4e5f6" } });
         },
       }),
     }),
@@ -149,6 +149,17 @@ describe("syncing the shared list", () => {
     expect("buy" in ups.at(-1)![0]).toBe(false);
     expect(s.snapshot().problem).toContain("update 0005");
     expect(s.snapshot().problem).not.toContain("0004");
+  });
+
+  it("sets up another kitchen (a client's) from the same account, empty, with its own name", async () => {
+    const s = await freshStore();
+    db.state.session = { user: { id: "u1", email: "phil@example.com" } };
+    const err = await s.createKitchen("The Garcias' kitchen", { name: "x", locations: [{ key: "fridge", label: "Fridge", kind: "fridge" }], freezerDays: { regular: 90, vacuum: 365, chamber: 730 }, flags: [], people: [], items: [] });
+    expect(err).toBeNull();
+    const made = db.state.sent.find((x) => x.table === "households" && x.op === "insert")!.payload as { name: string; settings: { locations: unknown[] } };
+    expect(made.name).toBe("The Garcias' kitchen");
+    expect(made.settings.locations).toHaveLength(1);
+    expect(db.state.sent.some((x) => x.table === "items")).toBe(false);
   });
 
   it("keeps changes made with no signal and sends them when back online", async () => {

@@ -187,6 +187,8 @@ export function Sharing({ app }: { app: AppState }) {
 
       {owner && <InviteMaker />}
 
+      <NewKitchen />
+
       {others.length > 0 && (
         <div className="menu">
           <span className="hint small">Your other kitchens</span>
@@ -207,6 +209,48 @@ export function Sharing({ app }: { app: AppState }) {
         </button>
       </div>
     </>
+  );
+}
+
+/**
+ * Start another kitchen from the same account: a client's, a second home, a cabin. The new one
+ * opens right away, empty, with the usual three places; switch back under "Your other kitchens".
+ */
+function NewKitchen() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const { busy, error, run } = useBusy();
+  if (!open)
+    return (
+      <div className="menu">
+        <button className="btn" type="button" onClick={() => setOpen(true)}>
+          Set up another kitchen
+        </button>
+        <span className="hint small">For a client, a second home, anywhere. Each kitchen has its own list and its own people.</span>
+      </div>
+    );
+  return (
+    <form
+      className="menu"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run(() => createKitchen(name.trim() || "New kitchen", { ...EMPTY_KITCHEN, name: name.trim() || "New kitchen" }));
+      }}
+    >
+      <label className="field">
+        Kitchen name
+        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="e.g. The Garcias' kitchen" autoFocus />
+      </label>
+      <div className="addrow">
+        <button className="btn" type="button" onClick={() => setOpen(false)} disabled={busy}>
+          Cancel
+        </button>
+        <button className="btn primary" type="submit" disabled={busy}>
+          {busy ? "Setting up…" : "Create and open it"}
+        </button>
+      </div>
+      {error && <p className="formerror">{error}</p>}
+    </form>
   );
 }
 
