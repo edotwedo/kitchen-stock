@@ -26,6 +26,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
   const [wrap, setWrap] = useState<Wrap>(it?.wrap ?? "regular");
   const [note, setNote] = useState(it?.note ?? "");
   const [flags, setFlags] = useState<string[]>(it?.flags ?? []);
+  const [upc, setUpc] = useState(it?.upc ?? "");
   const [armed, setArmed] = useState(false);
   const [scanning, setScanning] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -52,7 +53,9 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
     const spotField = s || it?.spot !== undefined ? { spot: s } : {};
     const b = buy.trim();
     const buyField = b || it?.buy !== undefined ? { buy: b } : {};
-    saveItem(it?.id ?? null, { name: n, loc, qty: qty.trim(), level, useBy, remindOn, frozenOn: frozenDate, wrap, note: note.trim(), flags, ...spotField, ...buyField });
+    // A scanned barcode is kept for recall alerts; items that were never scanned don't send one.
+    const upcField = upc || it?.upc !== undefined ? { upc } : {};
+    saveItem(it?.id ?? null, { name: n, loc, qty: qty.trim(), level, useBy, remindOn, frozenOn: frozenDate, wrap, note: note.trim(), flags, ...spotField, ...buyField, ...upcField });
     onSaved((it ? "Saved " : "Added ") + n, it ? () => restoreItem(it) : undefined);
     onClose();
   };
@@ -258,6 +261,7 @@ export function EditSheet({ h, target, onClose, onSaved }: { h: Household; targe
             onFound={(p) => {
               setScanning(false);
               setName(p.name);
+              setUpc(p.code);
               if (p.qty) setQty(p.qty);
               if (p.flagIds.length) setFlags((f) => [...new Set([...f, ...p.flagIds])]);
               const where = p.kind && h.locations.find((l) => l.kind === p.kind);

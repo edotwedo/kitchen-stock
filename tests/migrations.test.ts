@@ -33,7 +33,7 @@ describe("database updates", () => {
     await db.exec(read("catch-up.sql")); // safe to run twice
 
     const cols = await db.query<{ column_name: string }>("select column_name from information_schema.columns where table_schema = 'public' and table_name = 'items'");
-    expect(cols.rows.map((r) => r.column_name)).toEqual(expect.arrayContaining(["spot", "buy"]));
+    expect(cols.rows.map((r) => r.column_name)).toEqual(expect.arrayContaining(["spot", "buy", "upc"]));
     const fns = await db.query<{ proname: string }>("select proname from pg_proc where pronamespace = 'public'::regnamespace");
     expect(fns.rows.map((r) => r.proname)).toEqual(expect.arrayContaining(["household_members", "set_member_role", "leave_household", "join_household"]));
     const tables = await db.query<{ tablename: string }>("select tablename from pg_tables where schemaname = 'public'");

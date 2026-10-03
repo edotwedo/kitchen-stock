@@ -3,7 +3,7 @@ import { findRecallMatches, fromFda, matchKey, recallQuery, type Recall, type Re
 import type { Household } from "./types";
 
 // Recalls are fetched at most twice a day and kept on this device, so the list works offline too.
-const CACHE = "ks-recalls-v1";
+const CACHE = "ks-recalls-v2"; // v2: recalls carry the barcodes they list
 const CHECKED = "ks-recalls-checked";
 const FRESH_MS = 12 * 3600e3;
 

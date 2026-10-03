@@ -178,14 +178,14 @@ function loadOutbox(id: string): Outbox {
 }
 
 // Item columns added by later database updates. Until an update is run, saving leaves that column out.
-const LATER_COLUMNS: Record<string, string> = { spot: "Shelf spots need database update 0004", buy: "Shopping notes need database update 0005" };
+const LATER_COLUMNS: Record<string, string> = { spot: "Shelf spots need database update 0004", buy: "Shopping notes need database update 0005", upc: "Barcodes for recall alerts need database update 0007" };
 
 /** Save items. On a database missing a newer column, save everything else and say which update to run. */
 async function upsertItems(rows: ItemRow[]): Promise<{ error: unknown; status?: number }> {
   let send = rows;
   for (let tries = 0; ; tries++) {
     const res = await supabase!.from("items").upsert(send);
-    if (!res.error || !missingUpdate(res.error) || tries >= 2) return res;
+    if (!res.error || !missingUpdate(res.error) || tries >= Object.keys(LATER_COLUMNS).length) return res;
     const msg = (res.error as { message?: string }).message ?? "";
     const missing = Object.keys(LATER_COLUMNS).filter((c) => send.some((r) => c in r) && (msg.includes(`'${c}'`) || !/column/i.test(msg)));
     if (!missing.length) return res;

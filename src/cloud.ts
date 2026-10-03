@@ -30,6 +30,7 @@ export interface ItemRow {
   flags: string[];
   spot?: string | null; // database update 0004
   buy?: string | null; // database update 0005
+  upc?: string | null; // database update 0007
   updated_at?: string;
   updated_by?: string | null;
 }
@@ -58,6 +59,7 @@ export function toRow(householdId: string, i: Item): ItemRow {
     // working on a database without update 0004.
     ...(i.spot !== undefined ? { spot: i.spot || null } : {}),
     ...(i.buy !== undefined ? { buy: i.buy || null } : {}),
+    ...(i.upc !== undefined ? { upc: i.upc || null } : {}),
   };
 }
 
@@ -76,6 +78,7 @@ export function fromRow(r: ItemRow): Record<string, unknown> {
     flags: r.flags,
     ...(r.spot ? { spot: r.spot } : {}),
     ...(r.buy ? { buy: r.buy } : {}),
+    ...(r.upc ? { upc: r.upc } : {}),
     updated: r.updated_at,
     by: r.updated_by ?? undefined,
   };

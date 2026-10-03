@@ -11,6 +11,8 @@ Everything here is run once, in order. The SQL files are pasted into the Supabas
 | `migrations/0003_reminders.sql` | Phones that have turned reminders on |
 | `migrations/0004_spots.sql` | Shelf spots ("Door", "Top shelf") on items |
 | `migrations/0005_shopping_notes.sql` | Shopping notes ("oat milk, not regular") on items |
+| `migrations/0006_delete_account.sql` | Delete my account (the app stores require it) |
+| `migrations/0007_barcodes.sql` | The barcode of a scanned item, so recall alerts can match it exactly |
 
 ## Sign-in emails
 

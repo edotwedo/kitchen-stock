@@ -56,6 +56,7 @@ export interface Item {
   flags: string[];
   buy?: string; // a note for the shopping list ("oat milk, not regular"); cleared on restock; "" once cleared
   spot?: string; // where in the place: "Door", "Top shelf", "Bin 2"; "" once cleared, missing if never set
+  upc?: string; // the barcode number, when it was scanned (recall alerts match it exactly); missing if never scanned
   updated: string; // ISO timestamp
   by?: string;
 }

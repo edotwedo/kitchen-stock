@@ -1,5 +1,5 @@
 -- Kitchen Stock: catch the database up in one step.
--- Contains updates 0002, 0003, 0004, 0005, 0006, in order. Safe to run more than once.
+-- Contains updates 0002, 0003, 0004, 0005, 0006, 0007, in order. Safe to run more than once.
 -- Paste it all into Supabase's SQL Editor and press Run; it should end with "Success. No rows returned."
 -- Made by tools/catch-up.mjs from supabase/migrations/; don't edit by hand.
 
@@ -198,5 +198,14 @@ $$;
 
 revoke execute on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+
+-- ===== 0007_barcodes.sql =====
+-- Kitchen Stock database update 0007: barcodes on items.
+-- Keeps the barcode number of a scanned item, so food recall alerts can match it exactly.
+-- Safe to run more than once. Until it's run, the app saves everything except barcodes.
+
+alter table public.items add column if not exists upc text
+  check (upc is null or upc ~ '^[0-9]{6,14}$');
 
 commit;
