@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NoKitchen, Sharing, SignIn } from "./Account";
 import { CookSheet } from "./CookSheet";
+import { RecallSheet } from "./RecallSheet";
+import { useRecallMatches } from "./recallCheck";
 import { PrintView } from "./PrintView";
 import { Reminders } from "./Reminders";
 import { EditSheet, type SheetTarget } from "./EditSheet";
@@ -80,6 +82,7 @@ export default function App() {
   const [sheet, setSheet] = useState<SheetTarget | null>(null);
   const [menu, setMenu] = useState(false);
   const [cook, setCook] = useState(false);
+  const [recallsOpen, setRecallsOpen] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [storeRun, setStoreRun] = useState(false);
   const [receipt, setReceipt] = useState(false);
@@ -93,6 +96,7 @@ export default function App() {
     (useFirstCount ? nav.setAppBadge(useFirstCount) : (nav.clearAppBadge?.() ?? Promise.resolve())).catch(() => {});
   }, [useFirstCount]);
   const [toastEl, toast] = useToast();
+  const recalls = useRecallMatches(app.demo ? null : h);
   const today = new Date();
 
   // Database problems surface as a toast, once.
@@ -280,6 +284,17 @@ export default function App() {
             </button>
           </div>
         )}
+        {current.key === "first" && !searching && recalls.matches.length > 0 && (
+          <div className="cookbar recallbar" role="alert">
+            <p>
+              <strong>{recalls.matches.length === 1 ? "1 item may be recalled" : `${recalls.matches.length} items may be recalled`}</strong>
+              Check the labels against current FDA food recalls.
+            </p>
+            <button className="btn" type="button" onClick={() => setRecallsOpen(true)}>
+              Check
+            </button>
+          </div>
+        )}
         {current.key === "first" && !searching && (
           <div className="cookbar">
             <p>
@@ -351,6 +366,7 @@ export default function App() {
         />
       )}
       {printing && <PrintView h={h} onClose={() => setPrinting(false)} />}
+      {recallsOpen && <RecallSheet matches={recalls.matches} onCheck={recalls.check} onClose={() => setRecallsOpen(false)} />}
       {cook && <CookSheet h={h} onClose={() => setCook(false)} onDone={toast} />}
       {sheet && <EditSheet h={h} target={sheet} onClose={() => setSheet(null)} onSaved={toast} />}
       {menu && (

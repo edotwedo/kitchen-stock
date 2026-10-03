@@ -532,3 +532,10 @@ html.printing #root { display: none; }
 .scan-frame { position: absolute; left: 11%; right: 11%; top: 32%; bottom: 32%; border: 3px solid #fff; border-radius: 14px; box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.28); }
 .scan-type { display: flex; gap: 8px; }
 .scan-type input { flex: 1; min-width: 0; }
+
+/* Food recall alerts */
+.recallbar { border-color: var(--out); }
+.recallbar strong { color: var(--out); }
+.recalls { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; gap: 10px; }
+.recall { display: grid; gap: 4px; border: 1px solid var(--line); border-left: 4px solid var(--out); border-radius: 10px; padding: 10px 12px; }
+.recall .btn { justify-self: start; margin-top: 4px; }
